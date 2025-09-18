@@ -1,0 +1,197 @@
+import { useState, useMemo, useEffect } from 'react';
+import StepLayout from '../layouts/StepLayout';
+import {
+  TextInput,
+  Select,
+  SelectItem,
+  Checkbox,
+  PasswordInput,
+  InlineNotification,
+} from '@carbon/react';
+import { useRoles } from '../../../../hooks/useRoles';
+import { authStatus } from '../../../../api/auth';
+import { useNavigate } from 'react-router-dom';
+
+export default function Step1() {
+  const [username, setUsername] = useState('');
+  const [role, setRole] = useState<'' | 'Admin' | 'Pharmacist' | 'Clerk'>('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [autoLock, setAutoLock] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const { roles, loading: rolesLoading } = useRoles();
+
+  // If useRoles provides roles, use their name as the value (assumes `r.name` is one of the enum strings).
+  const roleOptions = useMemo(
+    () =>
+      roles && roles.length > 0
+        ? roles.map((r) => ({ text: r.name, value: r.name }))
+        : [
+            { text: 'Admin', value: 'Admin' },
+            { text: 'Pharmacist', value: 'Pharmacist' },
+            { text: 'Clerk', value: 'Clerk' },
+          ],
+    [roles],
+  );
+
+  // Store form data in localStorage for StepLayout to access (ensure latest value, avoiding stale state reads)
+  const persistForm = (overrides: Partial<Record<string, any>> = {}) => {
+    const formData = {
+      username,
+      role,
+      password,
+      confirmPassword,
+      autoLock,
+      fullName,
+      email,
+      ...overrides,
+    };
+    localStorage.setItem('onboarding_step1', JSON.stringify(formData));
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const status = await authStatus();
+        if (status?.hasUser) {
+          navigate('/login', { replace: true });
+        }
+      } catch {
+        // ignore
+      }
+    })();
+  }, [navigate]);
+
+  return (
+    <StepLayout currentStep={0}>
+      <div className="flex flex-col mt-6 px-6 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-7xl mx-auto">
+          {/* Form Section */}
+          <div className="md:col-span-3">
+            <h2 className="text-4xl font-extralight mb-3">Account Setup</h2>
+            <p className="mb-8 text-xl font-extralight">
+              Setup a local account to get started
+            </p>
+
+            {error && (
+              <InlineNotification
+                kind="error"
+                title="Error"
+                subtitle={error}
+                onCloseButtonClick={() => setError(null)}
+                className="mb-6"
+              />
+            )}
+
+            {/* Form Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <TextInput
+                id="full-name"
+                labelText="Full Name"
+                placeholder="Enter Full Name"
+                size="lg"
+                value={fullName}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setFullName(v);
+                  persistForm({ fullName: v });
+                }}
+              />
+              <TextInput
+                id="email"
+                labelText="Email"
+                placeholder="Enter Email Address"
+                size="lg"
+                value={email}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setEmail(v);
+                  persistForm({ email: v });
+                }}
+              />
+              <TextInput
+                id="username"
+                labelText="Username"
+                placeholder="Enter Username"
+                size="lg"
+                value={username}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setUsername(v);
+                  persistForm({ username: v });
+                }}
+              />
+              <Select
+                id="role"
+                labelText="Role"
+                value={role}
+                size="lg"
+                onChange={(e) => {
+                  const v = e.target.value as
+                    | ''
+                    | 'Admin'
+                    | 'Pharmacist'
+                    | 'Clerk';
+                  setRole(v);
+                  persistForm({ role: v });
+                }}
+                disabled={rolesLoading}
+              >
+                <SelectItem disabled value="" text="Choose a Role" />
+                {roleOptions.map((opt) => (
+                  <SelectItem
+                    key={opt.value}
+                    value={opt.value}
+                    text={opt.text}
+                  />
+                ))}
+              </Select>
+              <PasswordInput
+                id="password"
+                labelText="Password"
+                placeholder="Enter your password"
+                size="lg"
+                hidePasswordLabel="Hide password"
+                showPasswordLabel="Show password"
+                value={password}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setPassword(v);
+                  persistForm({ password: v });
+                }}
+              />
+              <PasswordInput
+                id="confirm-password"
+                labelText="Confirm Password"
+                placeholder="Confirm your password"
+                size="lg"
+                hidePasswordLabel="Hide password"
+                showPasswordLabel="Show password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setConfirmPassword(v);
+                  persistForm({ confirmPassword: v });
+                }}
+              />
+            </div>
+
+            <Checkbox
+              id="auto-lock"
+              labelText="Enable Auto-Lock After Inactivity"
+              checked={autoLock}
+              onChange={(_, { checked }) => {
+                setAutoLock(checked);
+                persistForm({ autoLock: checked });
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </StepLayout>
+  );
+}
