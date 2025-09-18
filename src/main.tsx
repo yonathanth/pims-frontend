@@ -9,7 +9,7 @@ if (import.meta && (import.meta as any).env && (import.meta as any).env.DEV) {
   // @ts-ignore
   (window as any).__TAURI__ = { core: import("@tauri-apps/api/core") };
   // Optional visibility
-  // eslint-disable-next-line no-console
+  // eslit-disable-next-line no-console
   console.log("__TAURI__ core attached for dev console testing");
 }
 
