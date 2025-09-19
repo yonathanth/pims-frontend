@@ -21,8 +21,14 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
 
   const isIncompleteOrdersLabel = (label: string) => /incomplete\s*orders\s*breakdown/i.test(label);
 
+  type IncompleteOrders = { pending?: number | string | null };
   const extractPending = (obj: Record<string, unknown>): number => {
-    const raw = (obj as any)?.pending;
+    let raw: number | string | null | undefined;
+    if ("pending" in obj) {
+      raw = obj["pending"] as number | string | null | undefined;
+    } else {
+      raw = undefined;
+    }
     const n = typeof raw === 'number' ? raw : Number(raw ?? 0);
     return Number.isFinite(n) ? n : 0;
   };
