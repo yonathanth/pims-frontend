@@ -39,7 +39,7 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
         return { displayLabel, main: String(extractPending(value as Record<string, unknown>)) };
       }
       // For other objects, show a compact count of keys
-      return { displayLabel, main: JSON.stringify(value) };
+      return { displayLabel, main: `${Object.keys(value).length} key${Object.keys(value).length !== 1 ? 's' : ''}` };
     }
     let str = String(value ?? '');
     // Handle when backend sends JSON string for breakdown
