@@ -60,7 +60,9 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
         return { displayLabel, main: JSON.stringify(parsed) };
       } catch (err) {
         // Intentionally non-fatal; backend might send plain strings. Log for observability.
-        console.error("Failed to parse JSON in SummaryCards.parseValue:", err);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("Failed to parse JSON in SummaryCards.parseValue:", err);
+        }
       }
     }
     // Extract a trailing percent in parentheses: e.g., "1234 (+8.4%)"
