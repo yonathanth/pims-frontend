@@ -817,8 +817,7 @@ const InventoryList = () => {
         { label: 'Inventory', isCurrentPage: true },
       ]}
       title=""
-      showExportButton={true}
-      onExportClick={() => console.log('Export clicked')}
+      showExportButton={false}
       showSuccessNotification={showSuccess}
       successMessage="Inventory operation completed successfully"
       onCloseNotification={() => setShowSuccess(false)}
@@ -833,7 +832,7 @@ const InventoryList = () => {
         customFilterSection={
           <div>
             {/* Top Row - Expiry Date Filters */}
-            <div className="px-6 mb-4 flex flex-wrap gap-4 items-end">
+            <div className="mb-4 flex flex-wrap gap-4 items-end">
               <div className="min-w-40">
                 <DatePicker
                   dateFormat="Y-m-d"
@@ -875,7 +874,7 @@ const InventoryList = () => {
             </div>
 
             {/* Bottom Row - Stock Status and Drug Filters on left, Search and Add Button on right */}
-            <div className="px-6 mb-4 flex flex-wrap gap-4 items-end justify-between">
+            <div className="mb-4 flex flex-wrap gap-4 items-end justify-between">
               {/* Left side - Stock Status and Drug Filters */}
               <div className="flex flex-wrap gap-4 items-end">
                 <div className="min-w-40">

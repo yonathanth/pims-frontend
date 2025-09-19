@@ -3,10 +3,7 @@ import { Button, Select, SelectItem, TextInput, Loading } from '@carbon/react';
 import GeneralPageLayout from '../components/GeneralPageLayout';
 import SortableTable from '../components/SortableTable';
 import {
-  generateInventoryReport,
-  generateSalesReport,
-  generateExpiryReport,
-  generatePurchaseReport,
+  previewReport,
   downloadReport,
   getCategories,
   getSuppliers,
@@ -31,7 +28,7 @@ const ReportGenerationPage = () => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [medicineCategory, setMedicineCategory] = useState('All');
-  const [status, setStatus] = useState('Current Stock');
+  const [status, setStatus] = useState('All Status');
   const [supplier, setSupplier] = useState('All');
   const [daysThreshold, setDaysThreshold] = useState('30');
 
@@ -83,8 +80,8 @@ const ReportGenerationPage = () => {
     loadFilterOptions();
   }, []);
 
-  // Generate report data
-  const handleGenerateReport = async () => {
+  // Generate report preview (first 100 records)
+  const handleGeneratePreview = async () => {
     setLoading(true);
     setError(null);
 
@@ -93,36 +90,18 @@ const ReportGenerationPage = () => {
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
-        status: getStatusValue(status),
+        status: getStatusValue(status, reportType),
         supplier: supplier !== 'All' ? supplier : undefined,
         daysThreshold: parseInt(daysThreshold) || 30,
       };
 
       const reportTypeValue = REPORT_TYPES[reportType];
-      let data: ReportData;
-
-      switch (reportTypeValue) {
-        case 'inventory':
-          data = await generateInventoryReport(filters);
-          break;
-        case 'sales':
-          data = await generateSalesReport(filters);
-          break;
-        case 'expiry':
-          data = await generateExpiryReport(filters);
-          break;
-        case 'purchase':
-          data = await generatePurchaseReport(filters);
-          break;
-        default:
-          throw new Error('Invalid report type');
-      }
-
+      const data = await previewReport(reportTypeValue, filters);
       setReportData(data);
     } catch (error) {
-      console.error('Error generating report:', error);
+      console.error('Error generating preview:', error);
       setError(
-        error instanceof Error ? error.message : 'Failed to generate report',
+        error instanceof Error ? error.message : 'Failed to generate preview',
       );
     } finally {
       setLoading(false);
@@ -139,7 +118,7 @@ const ReportGenerationPage = () => {
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
-        status: getStatusValue(status),
+        status: getStatusValue(status, reportType),
         supplier: supplier !== 'All' ? supplier : undefined,
         daysThreshold: parseInt(daysThreshold) || 30,
       };
@@ -166,7 +145,7 @@ const ReportGenerationPage = () => {
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
-        status: getStatusValue(status),
+        status: getStatusValue(status, reportType),
         supplier: supplier !== 'All' ? supplier : undefined,
         daysThreshold: parseInt(daysThreshold) || 30,
       };
@@ -183,14 +162,37 @@ const ReportGenerationPage = () => {
     }
   };
 
-  // Helper function to convert status display value to API value
-  const getStatusValue = (status: string): string | undefined => {
-    const statusMap: Record<string, string> = {
-      'Current Stock': 'current_stock',
-      'Low Stock': 'low_stock',
-      'Out of Stock': 'out_of_stock',
-    };
-    return statusMap[status] || undefined;
+  // Helper function to convert status display value to API value based on report type
+  const getStatusValue = (
+    status: string,
+    reportType: string,
+  ): string | undefined => {
+    if (reportType === 'Inventory Report') {
+      const inventoryMap: Record<string, string> = {
+        'Current Stock': 'current_stock',
+        'Low Stock': 'low_stock',
+        'Out of Stock': 'out_of_stock',
+      };
+      return inventoryMap[status];
+    } else if (reportType === 'Sales Report') {
+      const salesMap: Record<string, string> = {
+        'All Status': 'all_status',
+        Completed: 'completed',
+        Pending: 'pending',
+        Declined: 'declined',
+      };
+      return salesMap[status];
+    } else if (reportType === 'Purchase Report') {
+      const purchaseMap: Record<string, string> = {
+        'All Status': 'all',
+        Pending: 'pending',
+        Completed: 'completed',
+        'Partially Completed': 'partially_completed',
+        Cancelled: 'cancelled',
+      };
+      return purchaseMap[status];
+    }
+    return undefined;
   };
 
   // Get status options based on report type
@@ -201,6 +203,13 @@ const ReportGenerationPage = () => {
           { value: 'Current Stock', text: 'Current Stock' },
           { value: 'Low Stock', text: 'Low Stock' },
           { value: 'Out of Stock', text: 'Out of Stock' },
+        ];
+      case 'Sales Report':
+        return [
+          { value: 'All Status', text: 'All Status' },
+          { value: 'Completed', text: 'Completed' },
+          { value: 'Pending', text: 'Pending' },
+          { value: 'Declined', text: 'Declined' },
         ];
       case 'Purchase Report':
         return [
@@ -289,7 +298,18 @@ const ReportGenerationPage = () => {
               id="reportType"
               labelText="Select Report Type"
               value={reportType}
-              onChange={(e) => setReportType(e.target.value as ReportTypeKey)}
+              onChange={(e) => {
+                const newReportType = e.target.value as ReportTypeKey;
+                setReportType(newReportType);
+                // Reset status based on report type
+                if (newReportType === 'Inventory Report') {
+                  setStatus('Current Stock');
+                } else if (newReportType === 'Sales Report') {
+                  setStatus('All Status');
+                } else if (newReportType === 'Purchase Report') {
+                  setStatus('All Status');
+                }
+              }}
             >
               <SelectItem value="Inventory Report" text="Inventory Report" />
               <SelectItem value="Sales Report" text="Sales Report" />
@@ -321,8 +341,8 @@ const ReportGenerationPage = () => {
           </div>
 
           <div className="ml-auto">
-            <Button kind="primary" onClick={handleGenerateReport}>
-              Generate Report
+            <Button kind="primary" onClick={handleGeneratePreview}>
+              Preview and Generate Report
             </Button>
           </div>
         </div>
@@ -409,30 +429,23 @@ const ReportGenerationPage = () => {
             <div className="bg-gray-50 p-4 mx-6 mb-4 rounded-md">
               <h3 className="text-lg font-medium mb-2">Summary</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.entries(reportData.summary).map(([key, value]) => (
-                  <div key={key} className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {value}
+                {Object.entries(reportData.summary)
+                  .filter(([, value]) => typeof value !== 'object')
+                  .map(([key, value]) => (
+                    <div key={key} className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {value}
+                      </div>
+                      <div className="text-sm text-gray-600 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600 capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
-            <SortableTable<any>
-              title=""
-              headers={reportData.headers}
-              data={reportData.data}
-              filterOptions={[]}
-              customFilters={() => true}
-              searchField="drugName"
-            />
-
-            {/* Export Buttons */}
-            <div className="flex justify-end gap-3 mt-6 px-6">
+            {/* Export Buttons - Above Table */}
+            <div className="flex justify-end gap-3 mb-4 px-6">
               <Button
                 kind="secondary"
                 size="lg"
@@ -450,6 +463,15 @@ const ReportGenerationPage = () => {
                 Export as PDF
               </Button>
             </div>
+
+            <SortableTable<any>
+              title=""
+              headers={reportData.headers}
+              data={reportData.data}
+              filterOptions={[]}
+              customFilters={() => true}
+              enableSearch={false}
+            />
           </div>
         )}
 

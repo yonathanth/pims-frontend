@@ -26,6 +26,8 @@ export interface AuditLog {
   action: string;
   timestamp: string;
   changeSummary: string;
+  userName: string;
+  userId: number;
 }
 
 export interface DashboardData {

@@ -26,6 +26,7 @@ import TransactionsPage from './pages/TransactionsPage';
 import Analytics from './pages/analytics/Analytics';
 import SettingsPage from './pages/settingpage';
 import OnboardingWelcome from './pages/onboarding/OnboardingWelcome.tsx';
+import SellerPage from './pages/SellerPage';
 
 export default function AppRouter() {
   const [hasUser, setHasUser] = useState<boolean | null>(null);
@@ -71,6 +72,7 @@ export default function AppRouter() {
         <Route path="/dashboard/analytics" element={<Analytics />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/dashboard/categories" element={<CategoriesPage />} />
+        <Route path="/dashboard/seller" element={<SellerPage />} />
       </Routes>
     </Router>
   );

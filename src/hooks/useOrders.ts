@@ -16,6 +16,17 @@ export function useOrders() {
   const [totalItems, setTotalItems] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
+  const formatLocalDate = (value?: string | null) => {
+    if (!value) return 'N/A';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return 'N/A';
+    try {
+      return d.toLocaleDateString();
+    } catch {
+      return value.split('T')[0].split(' ')[0];
+    }
+  };
+
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
@@ -39,14 +50,8 @@ export function useOrders() {
         orderId: String(
           order.order.purchase_order_id ?? order.order.purchaseOrderId,
         ),
-        orderDate: (order.order.created_at || 'N/A')
-          ?.toString()
-          .split('T')[0]
-          .split(' ')[0],
-        arrivalDate: (order.order.expected_date || 'N/A')
-          ?.toString()
-          .split('T')[0]
-          .split(' ')[0],
+        orderDate: formatLocalDate(order.order.created_at),
+        arrivalDate: formatLocalDate(order.order.expected_date),
         items: order.items_count ?? order.itemsCount ?? 0,
         status: order.order.status,
         supplier: order.supplier_name ?? order.supplierName ?? 'Unknown',

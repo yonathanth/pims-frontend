@@ -20,6 +20,7 @@ import {
   Settings,
   DirectoryDomain,
   DocumentMultiple_01,
+  UserRole,
 } from '@carbon/icons-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -161,11 +162,20 @@ export default function DashboardLayout() {
             Analytics
           </SideNavLink>
           <SideNavLink
-            onClick={() => navigate('/notifications')}
-            renderIcon={Notification}
+            onClick={() => navigate('/dashboard/seller')}
+            renderIcon={UserRole}
           >
-            Notifications
+            Seller
           </SideNavLink>
+          {/* Removed Notifications sidebar link; header icon remains the entry point */}
+          {false && (
+            <SideNavLink
+              onClick={() => navigate('/notifications')}
+              renderIcon={Notification}
+            >
+              Notifications
+            </SideNavLink>
+          )}
         </SideNavItems>
       </SideNav>
     </>

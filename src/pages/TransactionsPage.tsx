@@ -109,7 +109,7 @@ const TransactionsPage = () => {
         { label: 'Transactions', isCurrentPage: true },
       ]}
       title=""
-      showExportButton={true}
+      showExportButton={false}
       onExportClick={() => console.log('Export clicked')}
     >
       {error && (
@@ -156,7 +156,7 @@ const TransactionsPage = () => {
         customFilterSection={
           <div>
             {/* Top Row - Date Filters */}
-            <div className="px-6 mb-4 flex flex-wrap gap-4 items-end">
+            <div className="mb-4 flex flex-wrap gap-4 items-end">
               <div className="min-w-80">
                 <DatePicker
                   datePickerType="range"
@@ -183,7 +183,7 @@ const TransactionsPage = () => {
             </div>
 
             {/* Bottom Row - Filters on left, Search on right */}
-            <div className="px-6 mb-4 flex flex-wrap gap-4 items-end justify-between">
+            <div className="mb-4 flex flex-wrap gap-4 items-end justify-between">
               {/* Left side - Other Filters */}
               <div className="flex flex-wrap gap-4 items-end">
                 <div className="min-w-48">

@@ -184,7 +184,7 @@ const EmployeesPage = () => {
         { label: 'Employee List', isCurrentPage: true },
       ]}
       title=""
-      showExportButton={true}
+      showExportButton={false}
       onExportClick={() => console.log('Export clicked')}
       showSuccessNotification={showSuccess}
       successMessage="Employee saved successfully"

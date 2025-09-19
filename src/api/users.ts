@@ -3,7 +3,11 @@ import type { CreateUserInput, UpdateUserInput } from '../types/user';
 
 export const listUsers = async (query?: { limit?: number }) => {
   const params = query ? `?limit=${query.limit}` : '';
-  return httpClient.get<any[]>(`/users${params}`);
+  const res = await httpClient.get<any>(`/users${params}`);
+  // Normalize: backend may return an array or an object { data: [...], meta }
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.data)) return res.data;
+  return [];
 };
 
 export const createUser = (input: CreateUserInput) =>

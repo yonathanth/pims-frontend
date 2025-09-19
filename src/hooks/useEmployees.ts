@@ -20,8 +20,12 @@ export function useEmployees() {
       }));
       setEmployees(mapped);
       setError(null);
-    } catch (error) {
-      setError('Failed to fetch employees');
+    } catch (error: any) {
+      const message =
+        (error?.details && (error.details.message || error.details.error)) ||
+        error?.message ||
+        'Failed to fetch employees';
+      setError(message);
       setEmployees([]);
     } finally {
       setLoading(false);

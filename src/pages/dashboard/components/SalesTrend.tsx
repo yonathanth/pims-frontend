@@ -9,24 +9,25 @@ interface SalesTrendProps {
 }
 
 const SalesTrend = ({ data }: SalesTrendProps) => {
-  // Transform backend data to chart format
+  // Transform backend data to Carbon LineChart format (only Sales):
+  // [{ group: 'Sales', key: 'YYYY-MM', value: number }]
   const chartData = data
     ? data.map((item) => ({
-        group: item.month,
-        sales: item.sales,
-        purchases: item.purchases,
+        group: 'Sales',
+        key: item.month,
+        value: item.sales,
       }))
     : salesTrend.data;
 
   const options = {
-    title: 'Monthly Sales and Purchases',
+    title: 'Monthly Sales',
     axes: {
       left: {
         mapsTo: 'value',
         title: 'Quantity',
       },
       bottom: {
-        mapsTo: 'group',
+        mapsTo: 'key',
         scaleType: ScaleTypes.LABELS,
         title: 'Month',
       },
@@ -37,8 +38,7 @@ const SalesTrend = ({ data }: SalesTrendProps) => {
     },
     color: {
       scale: {
-        sales: '#f8bbd0', // light pink
-        purchases: '#bbdefb', // light blue
+        Sales: '#f8bbd0', // light pink
       },
     },
   };

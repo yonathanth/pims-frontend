@@ -37,20 +37,32 @@ export function useAuditLogs() {
         page,
         limit,
       };
-      const mapped: AuditLogItem[] = data.map((d: any) => ({
-        id: String(d.id ?? d.audit_id),
-        auditId: `AUD-${String(d.id ?? d.audit_id).padStart(4, '0')}`,
-        entityName: d.entityName ?? d.entity_name,
-        entityId: String(d.entityId ?? d.entity_id),
-        action: String(d.action).toUpperCase(),
-        user: String(d.user?.id ?? d.userId ?? d.user_id ?? ''),
-        timestamp: d.timestamp,
-        details: {
-          description: d.changeSummary ?? d.change_summary ?? '',
-          ipAddress: '-',
-          userAgent: '-',
-        },
-      }));
+      const mapped: AuditLogItem[] = data.map((d: any) => {
+        const userIdVal = d.user?.id ?? d.userId ?? d.user_id ?? '';
+        const userFullName = d.user?.fullName ?? d.user?.full_name ?? '';
+        const userUsername = d.user?.username ?? '';
+        const userDisplay = [userFullName || userUsername]
+          .filter(Boolean)
+          .join(' ');
+        const userField = userDisplay
+          ? `${userIdVal} - ${userDisplay}`
+          : String(userIdVal);
+
+        return {
+          id: String(d.id ?? d.audit_id),
+          auditId: `AUD-${String(d.id ?? d.audit_id).padStart(4, '0')}`,
+          entityName: d.entityName ?? d.entity_name,
+          entityId: String(d.entityId ?? d.entity_id),
+          action: String(d.action).toUpperCase(),
+          user: userField,
+          timestamp: d.timestamp,
+          details: {
+            description: d.changeSummary ?? d.change_summary ?? '',
+            ipAddress: '-',
+            userAgent: '-',
+          },
+        };
+      });
       setRows(mapped);
       setTotalItems(meta.totalItems ?? mapped.length);
       setError(null);

@@ -78,6 +78,16 @@ function mapUpdateItemPayload(input: UpdatePurchaseOrderItemInput) {
   } as any;
 }
 
+function toProductName(drug: any, drugId?: number) {
+  return (
+    drug?.brandName ||
+    drug?.genericName ||
+    drug?.brand_name ||
+    drug?.generic_name ||
+    (drugId != null ? `Drug ID: ${drugId}` : 'Unknown Product')
+  );
+}
+
 // Purchase Order API
 export const listPurchaseOrders = async (query: ListOrdersQuery = {}) => {
   const res = await httpClient.get<{
@@ -156,30 +166,57 @@ export const listPurchaseOrderItems = async (
     quantity_received: it.quantityReceived ?? it.quantity_received ?? 0,
     unit_cost: it.unitCost ?? it.unit_cost ?? 0,
     status: it.status,
+    product_name: toProductName(it.drug, it.drugId ?? it.drug_id),
   }));
   return mapped;
 };
 
-export const createPurchaseOrderItem = (
+export const createPurchaseOrderItem = async (
   input: CreatePurchaseOrderItemInput,
 ) => {
   const payload = mapCreateItemPayload(input);
   const id = input.purchase_order_id;
-  return httpClient.post<PurchaseOrderItemDto>(
+  const res = await httpClient.post<any>(
     `/purchase-orders/${id}/items`,
     payload,
   );
+  const it = res as any;
+  const mapped: PurchaseOrderItemDto = {
+    purchase_order_item_id: it.id ?? it.purchase_order_item_id,
+    purchase_order_id: it.purchaseOrderId ?? it.purchase_order_id ?? id,
+    drug_id: it.drugId ?? it.drug_id,
+    batch_id: it.batchId ?? it.batch_id ?? null,
+    quantity_ordered: it.quantityOrdered ?? it.quantity_ordered,
+    quantity_received: it.quantityReceived ?? it.quantity_received ?? 0,
+    unit_cost: it.unitCost ?? it.unit_cost ?? 0,
+    status: it.status,
+    product_name: toProductName(it.drug, it.drugId ?? it.drug_id),
+  };
+  return mapped;
 };
 
-export const updatePurchaseOrderItem = (
+export const updatePurchaseOrderItem = async (
   id: number,
   input: UpdatePurchaseOrderItemInput,
 ) => {
   const payload = mapUpdateItemPayload(input);
-  return httpClient.patch<PurchaseOrderItemDto>(
+  const res = await httpClient.patch<any>(
     `/purchase-orders/items/${id}`,
     payload,
   );
+  const it = res as any;
+  const mapped: PurchaseOrderItemDto = {
+    purchase_order_item_id: it.id ?? it.purchase_order_item_id,
+    purchase_order_id: it.purchaseOrderId ?? it.purchase_order_id,
+    drug_id: it.drugId ?? it.drug_id,
+    batch_id: it.batchId ?? it.batch_id ?? null,
+    quantity_ordered: it.quantityOrdered ?? it.quantity_ordered,
+    quantity_received: it.quantityReceived ?? it.quantity_received ?? 0,
+    unit_cost: it.unitCost ?? it.unit_cost ?? 0,
+    status: it.status,
+    product_name: toProductName(it.drug, it.drugId ?? it.drug_id),
+  };
+  return mapped;
 };
 
 export const deletePurchaseOrderItem = (id: number) => {

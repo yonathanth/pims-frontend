@@ -9,8 +9,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ data }) => {
   // Transform backend data to display format
   const activities = data
     ? data.map((log) => ({
-        initials: log.entityName.substring(0, 2).toUpperCase(),
-        name: log.entityName,
+        initials: log.userName.substring(0, 2).toUpperCase(),
+        name: log.userName,
         type: log.action.toLowerCase(),
         typeColor: 'bg-gray-200 text-gray-900',
         typeText: log.action,

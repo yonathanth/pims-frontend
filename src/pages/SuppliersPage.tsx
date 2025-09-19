@@ -159,8 +159,7 @@ const SuppliersPage = () => {
         { label: 'Supplier List', isCurrentPage: true },
       ]}
       title=""
-      showExportButton={true}
-      onExportClick={() => console.log('Export clicked')}
+      showExportButton={false}
       showSuccessNotification={showSuccessMessage}
       successMessage="Supplier saved successfully"
       onCloseNotification={() => setShowSuccessMessage(false)}
@@ -226,17 +225,20 @@ const SuppliersPage = () => {
           Loading suppliers...
         </div>
       )}
-      {(error || showError) && !showAddModal && !showEditModal && (
-        <div className="mx-6 mb-4">
-          <InlineNotification
-            kind="error"
-            title="Error"
-            subtitle={(showError || error) as string}
-            hideCloseButton={false}
-            onCloseButtonClick={() => setShowError(null)}
-          />
-        </div>
-      )}
+      {(error || showError) &&
+        !showAddModal &&
+        !showEditModal &&
+        !showDeleteModal && (
+          <div className="mx-6 mb-4">
+            <InlineNotification
+              kind="error"
+              title="Error"
+              subtitle={(showError || error) as string}
+              hideCloseButton={false}
+              onCloseButtonClick={() => setShowError(null)}
+            />
+          </div>
+        )}
 
       <GenericModal
         isOpen={showAddModal}
@@ -394,7 +396,20 @@ const SuppliersPage = () => {
       >
         <ModalHeader label="" title="Delete Supplier" />
         <ModalBody>
-          Are you sure you want to delete <b>{deleteSupplierItem?.name}</b>?
+          <div>
+            <p className="mb-4">
+              Are you sure you want to delete <b>{deleteSupplierItem?.name}</b>?
+            </p>
+            {showError && (
+              <InlineNotification
+                kind="error"
+                title="Cannot Delete Supplier"
+                subtitle={showError}
+                hideCloseButton={false}
+                onCloseButtonClick={() => setShowError(null)}
+              />
+            )}
+          </div>
         </ModalBody>
         <ModalFooter>
           <Button kind="secondary" onClick={() => setShowDeleteModal(false)}>

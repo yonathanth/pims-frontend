@@ -36,6 +36,7 @@ export type PurchaseOrderItemDto = {
   quantity_received: number;
   unit_cost: number;
   status: string;
+  product_name?: string; // derived from related drug when available
 };
 
 export type CreatePurchaseOrderItemInput = {

@@ -166,8 +166,7 @@ const CategoriesPage = () => {
         { label: 'Categories', isCurrentPage: true },
       ]}
       title=""
-      showExportButton={true}
-      onExportClick={() => console.log('Export clicked')}
+      showExportButton={false}
       showSuccessNotification={showSuccess}
       successMessage="Category has been added successfully"
       onCloseNotification={() => setShowSuccess(false)}
@@ -297,7 +296,20 @@ const CategoriesPage = () => {
       >
         <ModalHeader label="" title="Delete Category" />
         <ModalBody>
-          Are you sure you want to delete <b>{deleteCat?.name}</b>?
+          <div>
+            <p className="mb-4">
+              Are you sure you want to delete <b>{deleteCat?.name}</b>?
+            </p>
+            {showError && (
+              <InlineNotification
+                kind="error"
+                title="Cannot Delete Category"
+                subtitle={showError}
+                hideCloseButton={false}
+                onCloseButtonClick={() => setShowError(null)}
+              />
+            )}
+          </div>
         </ModalBody>
         <ModalFooter>
           <Button kind="secondary" onClick={() => setShowDeleteModal(false)}>

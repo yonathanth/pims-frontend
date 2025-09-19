@@ -50,14 +50,15 @@ export function useNotifications(query: ListNotificationsQuery = {}) {
         if (queryParams.isRead !== undefined)
           cleanQuery.isRead = queryParams.isRead;
 
-        const result = await listNotifications(cleanQuery);
+        // Diagnostic: only log when isRead is explicitly set
+        if (Object.prototype.hasOwnProperty.call(cleanQuery, 'isRead')) {
+          console.log('[useNotifications] cleanQuery:', cleanQuery);
+        }
 
-        // Debug: Log the actual response
-        console.log('API Response:', result);
+        const result = await listNotifications(cleanQuery);
 
         // Check if result has the expected structure
         if (!result || !result.data) {
-          console.error('Unexpected API response structure:', result);
           setNotifications([]);
           setPagination(null);
           setError('Invalid API response structure');
@@ -77,9 +78,12 @@ export function useNotifications(query: ListNotificationsQuery = {}) {
         setNotifications(mapped);
         setPagination(result.meta);
         setError(null);
-      } catch (error) {
-        console.error('Failed to fetch notifications:', error);
-        setError('Failed to fetch notifications');
+      } catch (error: any) {
+        const message =
+          (error?.details && (error.details.message || error.details.error)) ||
+          error?.message ||
+          'Failed to fetch notifications';
+        setError(message);
         setNotifications([]);
         setPagination(null);
       } finally {
@@ -93,9 +97,7 @@ export function useNotifications(query: ListNotificationsQuery = {}) {
     try {
       const result = await getNotificationCounts();
       setCounts(result);
-    } catch (error) {
-      console.error('Failed to fetch notification counts:', error);
-    }
+    } catch (error) {}
   }, []);
 
   const markAsRead = useCallback(
@@ -109,7 +111,6 @@ export function useNotifications(query: ListNotificationsQuery = {}) {
         // Refresh counts
         await fetchCounts();
       } catch (error) {
-        console.error('Failed to mark notification as read:', error);
         throw error;
       }
     },
@@ -124,7 +125,6 @@ export function useNotifications(query: ListNotificationsQuery = {}) {
       // Refresh counts
       await fetchCounts();
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
       throw error;
     }
   }, [fetchCounts]);
