@@ -3,7 +3,7 @@ import React from "react";
 interface SummaryCardProps {
   summaryData: {
     label: string;
-    value: string | number | Record<string, any> | null;
+    value: string | number | Record<string, unknown> | null;
     trend: "up" | "down";
   }[];
 }
