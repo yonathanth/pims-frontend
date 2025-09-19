@@ -27,7 +27,18 @@ export function useAnalytics(query: AnalyticsQuery = {}) {
       }
     })();
     return () => { mounted = false; };
-  }, [query.range_days, query.low_stock_threshold]);
+  }, [
+    query.timeFilter,
+    query.startIso,
+    query.endIso,
+    query.dateIso,
+    query.rangeDays,
+    query.lowStockThreshold,
+    query.topPerformersSort,
+    query.topPerformersOrder,
+    query.topSuppliersSort,
+    query.topSuppliersOrder,
+  ]);
 
   return { data, loading, error };
 }

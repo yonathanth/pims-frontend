@@ -4,13 +4,28 @@ import SalesAnalytics from "./SalesAnalytics";
 import SupplyAnalytics from "./SupplyAnalytics";
 import EmployeeAnalytics from "./EmployeeAnalytics";
 import { useEffect, useState } from "react";
-import { useAnalytics } from "../../../hooks/useAnalytics";
+import type { AnalyticsResponseDto } from "../../../api/analytics";
 
-const AnalyticsTabs = () => {
+interface AnalyticsTabsProps {
+  analytics?: AnalyticsResponseDto | null;
+  loading?: boolean;
+  topPerformersSort: 'volume'|'name';
+  onChangeTopPerformersSort: (v: 'volume'|'name') => void;
+  topSuppliersSort: 'volume'|'value'|'frequency';
+  onChangeTopSuppliersSort: (v: 'volume'|'value'|'frequency') => void;
+}
+
+const AnalyticsTabs: React.FC<AnalyticsTabsProps> = ({
+  analytics,
+  loading: loadingProp = false,
+  topPerformersSort,
+  onChangeTopPerformersSort,
+  topSuppliersSort,
+  onChangeTopSuppliersSort,
+}) => {
   const [selectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasInteracted] = useState(false);
-  const { data: analytics } = useAnalytics();
 
   useEffect(() => {
     if (hasInteracted) {
@@ -33,7 +48,7 @@ const AnalyticsTabs = () => {
       <div className="" style={{padding: ""}}>
       <TabPanels>
           <TabPanel>
-            {loading ? (
+            {loading || loadingProp ? (
               <div className="flex justify-center items-center h-64">
                 <InlineLoading description="Loading..." />
               </div>
@@ -42,7 +57,7 @@ const AnalyticsTabs = () => {
             )}
           </TabPanel>
           <TabPanel>
-            {loading ? (
+            {loading || loadingProp ? (
               <div className="flex justify-center items-center h-64">
                 <InlineLoading description="Loading..." />
               </div>
@@ -51,21 +66,29 @@ const AnalyticsTabs = () => {
             )}
           </TabPanel>
           <TabPanel>
-            {loading ? (
+            {loading || loadingProp ? (
               <div className="flex justify-center items-center h-64">
                 <InlineLoading description="Loading..." />
               </div>
             ) : (
-              <SupplyAnalytics analytics={analytics} />
+              <SupplyAnalytics
+                analytics={analytics}
+                sortBy={topSuppliersSort}
+                onChangeSort={onChangeTopSuppliersSort}
+              />
             )}
           </TabPanel>
           <TabPanel>
-            {loading ? (
+            {loading || loadingProp ? (
               <div className="flex justify-center items-center h-64">
                 <InlineLoading description="Loading..." />
               </div>
             ) : (
-              <EmployeeAnalytics analytics={analytics} />
+              <EmployeeAnalytics
+                analytics={analytics}
+                sortBy={topPerformersSort}
+                onChangeSort={onChangeTopPerformersSort}
+              />
             )}
           </TabPanel>
         </TabPanels>
