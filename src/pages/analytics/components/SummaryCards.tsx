@@ -19,14 +19,24 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
     return s;
   };
 
-  const parseValue = (label: string, value: any): { displayLabel: string; main: string; percent?: string } => {
+  const isIncompleteOrdersLabel = (label: string) => /incomplete\s*orders\s*breakdown/i.test(label);
+
+  const extractPending = (obj: Record<string, unknown>): number => {
+    const raw = (obj as any)?.pending;
+    const n = typeof raw === 'number' ? raw : Number(raw ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const parseValue = (
+    label: string,
+    value: string | number | Record<string, any> | null
+  ): { displayLabel: string; main: string; percent?: string } => {
     let displayLabel = label;
     // If value is object and label indicates incomplete orders, show pending only
     if (value && typeof value === 'object') {
-      if (/incomplete\s*orders\s*breakdown/i.test(label)) {
+      if (isIncompleteOrdersLabel(label)) {
         displayLabel = 'Pending Orders';
-        const pending = typeof value.pending === 'number' ? value.pending : Number(value.pending ?? 0) || 0;
-        return { displayLabel, main: String(pending) };
+        return { displayLabel, main: String(extractPending(value as Record<string, unknown>)) };
       }
       // For other objects, show a compact count of keys
       return { displayLabel, main: JSON.stringify(value) };
@@ -36,16 +46,20 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
     if (/^\s*\{/.test(str) && /\}\s*$/.test(str)) {
       try {
         const parsed = JSON.parse(str);
-        if (/incomplete\s*orders\s*breakdown/i.test(label)) {
+        if (isIncompleteOrdersLabel(label)) {
           displayLabel = 'Pending Orders';
-          const pending = typeof parsed.pending === 'number' ? parsed.pending : Number(parsed.pending ?? 0) || 0;
-          return { displayLabel, main: String(pending) };
+          return { displayLabel, main: String(extractPending(parsed)) };
         }
         // fallback display stringified if object isn't the breakdown we expect
         return { displayLabel, main: JSON.stringify(parsed) };
-      } catch {}
+      } catch (err) {
+        // Intentionally non-fatal; backend might send plain strings. Log for observability.
+        console.error("Failed to parse JSON in SummaryCards.parseValue:", err);
+      }
     }
     // Extract a trailing percent in parentheses: e.g., "1234 (+8.4%)"
+    // Matches a string with an optional trailing percentage in parentheses, e.g. "1234 (+8.4%)".
+    // Captures the main value and the percentage (with optional sign and decimal), e.g. "1234" and "+8.4%".
     const m = str.match(/^(.*?)(?:\s*\(([+\-]*\d+(?:\.\d+)?%)\)\s*)$/);
     if (m && m[2]) {
       return { displayLabel, main: m[1].trim(), percent: normalizeSign(m[2]) };
