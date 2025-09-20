@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { Button, TextArea, InlineNotification } from '@carbon/react';
+import {
+  Button,
+  TextArea,
+  InlineNotification,
+  ComposedModal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@carbon/react';
 import { Checkmark, Close } from '@carbon/icons-react';
 import { type PendingSale } from '../../../api/sales';
 
@@ -14,7 +22,6 @@ export const PendingSaleCard: React.FC<PendingSaleCardProps> = ({
   onApprove,
   onDecline,
 }) => {
-  const [showApproveModal, setShowApproveModal] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [approveNotes, setApproveNotes] = useState('');
   const [declineReason, setDeclineReason] = useState('');
@@ -26,8 +33,6 @@ export const PendingSaleCard: React.FC<PendingSaleCardProps> = ({
     setError(null);
     try {
       await onApprove(sale.id);
-      setShowApproveModal(false);
-      setApproveNotes('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve sale');
     } finally {
@@ -59,15 +64,15 @@ export const PendingSaleCard: React.FC<PendingSaleCardProps> = ({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-ET', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'ETB',
     }).format(amount);
   };
 
   return (
     <div
-      className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+      className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow min-h-32 max-h-40 overflow-hidden"
       style={{
         backgroundColor: 'var(--cds-field-01)',
         borderColor: 'var(--cds-border-subtle)',
@@ -79,62 +84,51 @@ export const PendingSaleCard: React.FC<PendingSaleCardProps> = ({
           title="Error"
           subtitle={error}
           onClose={() => setError(null)}
-          className="mb-4"
+          className="mb-2"
         />
       )}
 
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-semibold text-lg">{sale.drugName}</h3>
+      <div className="flex h-full min-h-24">
+        <div className="flex-1 pr-4 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-lg truncate">{sale.drugName}</h3>
             <span
-              className="px-2 py-1 text-xs rounded-full"
+              className="w-2 h-2 rounded-full flex-shrink-0"
               style={{
-                backgroundColor: 'var(--cds-support-warning-inverse)',
-                color: 'var(--cds-support-warning)',
+                backgroundColor: 'var(--cds-support-warning)',
               }}
-            >
-              Pending
-            </span>
+            />
           </div>
 
           <div
-            className="grid grid-cols-2 gap-4 text-sm mb-3"
+            className="grid grid-cols-2 gap-1 text-sm mb-2"
             style={{ color: 'var(--cds-text-secondary)' }}
           >
-            <div>
+            <div className="truncate">
               <span className="font-medium">SKU:</span> {sale.sku}
             </div>
-            <div>
-              <span className="font-medium">Category:</span> {sale.category}
+            <div className="truncate">
+              <span className="font-medium">Qty:</span> {sale.quantity}
             </div>
-            <div>
-              <span className="font-medium">Quantity:</span> {sale.quantity}
+            <div className="truncate">
+              <span className="font-medium">Total:</span>{' '}
+              <span className="font-bold">
+                {formatCurrency(sale.totalPrice)}
+              </span>
             </div>
-            <div>
-              <span className="font-medium">Unit Price:</span>{' '}
-              {formatCurrency(sale.unitPrice)}
-            </div>
-            <div>
-              <span className="font-medium">Total Price:</span>{' '}
-              {formatCurrency(sale.totalPrice)}
-            </div>
-            <div>
-              <span className="font-medium">Customer:</span> {sale.customerName}
-            </div>
-            <div>
-              <span className="font-medium">Batch:</span> {sale.batchNumber}
-            </div>
-            <div>
+            <div className="truncate">
               <span className="font-medium">Stock:</span> {sale.currentStock}
+            </div>
+            <div className="truncate col-span-2">
+              <span className="font-medium">Customer:</span> {sale.customerName}
             </div>
           </div>
 
           {sale.notes && (
-            <div className="mb-3">
+            <div className="mb-1">
               <span className="font-medium text-sm">Notes:</span>
               <p
-                className="text-sm mt-1"
+                className="text-sm mt-0.5 truncate"
                 style={{ color: 'var(--cds-text-secondary)' }}
               >
                 {sale.notes}
@@ -143,22 +137,23 @@ export const PendingSaleCard: React.FC<PendingSaleCardProps> = ({
           )}
 
           <div
-            className="text-xs"
+            className="text-sm truncate"
             style={{ color: 'var(--cds-text-secondary)' }}
           >
-            Requested: {formatDate(sale.createdAt)}
+            {formatDate(sale.createdAt)}
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 ml-4">
+        <div className="w-36 flex flex-col gap-1 flex-shrink-0">
           <Button
             kind="primary"
             size="sm"
             renderIcon={Checkmark}
-            onClick={() => setShowApproveModal(true)}
+            onClick={handleApprove}
             disabled={loading}
+            className="flex-1 w-full text-xs"
           >
-            Approve
+            {loading ? 'Processing...' : 'Approve'}
           </Button>
           <Button
             kind="danger"
@@ -166,58 +161,29 @@ export const PendingSaleCard: React.FC<PendingSaleCardProps> = ({
             renderIcon={Close}
             onClick={() => setShowDeclineModal(true)}
             disabled={loading}
+            className="flex-1 w-full text-xs"
           >
             Decline
           </Button>
         </div>
       </div>
 
-      {/* Approve Modal */}
-      {showApproveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Approve Sale</h3>
-            <p
-              className="text-sm mb-6"
-              style={{ color: 'var(--cds-text-secondary)' }}
-            >
-              Approve the sale of {sale.quantity} units of {sale.drugName} to{' '}
-              {sale.customerName}?
-            </p>
-
-            <div className="flex gap-2 justify-end">
-              <Button
-                kind="secondary"
-                onClick={() => {
-                  setShowApproveModal(false);
-                  setApproveNotes('');
-                  setError(null);
-                }}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button kind="primary" onClick={handleApprove} disabled={loading}>
-                {loading ? 'Approving...' : 'Approve Sale'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Decline Modal */}
-      {showDeclineModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Decline Sale</h3>
-            <p
-              className="text-sm mb-4"
-              style={{ color: 'var(--cds-text-secondary)' }}
-            >
-              Decline the sale of {sale.quantity} units of {sale.drugName} to{' '}
-              {sale.customerName}?
+      <ComposedModal
+        open={showDeclineModal}
+        onClose={() => {
+          setShowDeclineModal(false);
+          setDeclineReason('');
+          setError(null);
+        }}
+      >
+        <ModalHeader label="" title="Decline Sale" />
+        <ModalBody>
+          <div>
+            <p className="mb-4">
+              Decline the sale of <b>{sale.quantity}</b> units of{' '}
+              <b>{sale.drugName}</b> to <b>{sale.customerName}</b>?
             </p>
-
             <TextArea
               labelText="Reason for Declining *"
               value={declineReason}
@@ -227,30 +193,38 @@ export const PendingSaleCard: React.FC<PendingSaleCardProps> = ({
               className="mb-4"
               required
             />
-
-            <div className="flex gap-2 justify-end">
-              <Button
-                kind="secondary"
-                onClick={() => {
-                  setShowDeclineModal(false);
-                  setDeclineReason('');
-                  setError(null);
-                }}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button
-                kind="danger"
-                onClick={handleDecline}
-                disabled={loading || !declineReason.trim()}
-              >
-                {loading ? 'Declining...' : 'Decline Sale'}
-              </Button>
-            </div>
+            {error && (
+              <InlineNotification
+                kind="error"
+                title="Error"
+                subtitle={error}
+                hideCloseButton={false}
+                onCloseButtonClick={() => setError(null)}
+              />
+            )}
           </div>
-        </div>
-      )}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            kind="secondary"
+            onClick={() => {
+              setShowDeclineModal(false);
+              setDeclineReason('');
+              setError(null);
+            }}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            kind="danger"
+            onClick={handleDecline}
+            disabled={loading || !declineReason.trim()}
+          >
+            {loading ? 'Declining...' : 'Decline Sale'}
+          </Button>
+        </ModalFooter>
+      </ComposedModal>
     </div>
   );
 };

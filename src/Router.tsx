@@ -29,20 +29,33 @@ import OnboardingWelcome from './pages/onboarding/OnboardingWelcome.tsx';
 import SellerPage from './pages/SellerPage';
 
 export default function AppRouter() {
-  const [hasUser, setHasUser] = useState<boolean | null>(null);
+  const [setupStatus, setSetupStatus] = useState<{
+    initialized: boolean;
+    hasUser: boolean;
+    setupComplete: boolean;
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const status = await authStatus();
-        setHasUser(status.hasUser);
+        setSetupStatus({
+          initialized: status.initialized,
+          hasUser: status.hasUser,
+          setupComplete: status.setupComplete,
+        });
       } catch {
-        setHasUser(true); // default to login flow if status fails
+        // If we can't get status, assume system is initialized to avoid setup loop
+        setSetupStatus({
+          initialized: true,
+          hasUser: true,
+          setupComplete: true,
+        });
       }
     })();
   }, []);
 
-  if (hasUser === null) return null;
+  if (setupStatus === null) return null;
 
   return (
     <Router>
@@ -50,7 +63,11 @@ export default function AppRouter() {
         <Route
           path="/"
           element={
-            hasUser ? <Navigate to="/login" replace /> : <OnboardingWelcome />
+            setupStatus.initialized ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <OnboardingWelcome />
+            )
           }
         />
         <Route path="/login" element={<LoginPage />} />

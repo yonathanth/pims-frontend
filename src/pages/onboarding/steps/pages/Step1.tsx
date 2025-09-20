@@ -57,7 +57,7 @@ export default function Step1() {
     (async () => {
       try {
         const status = await authStatus();
-        if (status?.hasUser) {
+        if (status?.initialized) {
           navigate('/login', { replace: true });
         }
       } catch {

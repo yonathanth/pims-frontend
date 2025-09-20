@@ -74,3 +74,4 @@ export function useSales(initialParams: SalesQueryParams = {}) {
     setStatus,
   };
 }
+

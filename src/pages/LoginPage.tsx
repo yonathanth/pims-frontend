@@ -35,18 +35,20 @@ export default function LoginPage() {
     }
 
     try {
-      const status = await authStatus();
-      if (!status.hasUser) {
-        setError('No admin user found. Please complete setup first.');
-        navigate('/onboarding/step1');
-        return;
-      }
-
       const session = await login(username, password);
       localStorage.setItem('session', JSON.stringify(session));
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      if (err.status === 401) {
+        setError(
+          'Invalid username or password. Please check your credentials.',
+        );
+      } else if (err.status === 404) {
+        setError('No admin user found. Please complete setup first.');
+        navigate('/onboarding/step1');
+      } else {
+        setError(err.message || 'Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -41,7 +41,21 @@ export const logout = async () => {
 };
 
 export const authStatus = async () => {
-  return httpClient.get<{ hasUser: boolean }>('/auth/status');
+  const status = await httpClient.get<{
+    initialized: boolean;
+    hasUsers: boolean;
+    hasConfigs: boolean;
+    hasCategories: boolean;
+    hasSuppliers: boolean;
+    hasLocations: boolean;
+    setupComplete: boolean;
+  }>('/auth/status');
+
+  // Maintain backward compatibility
+  return {
+    hasUser: status.hasUsers,
+    ...status,
+  };
 };
 
 export const setupAdmin = async (payload: {

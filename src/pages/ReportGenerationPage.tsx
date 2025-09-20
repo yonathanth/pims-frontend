@@ -6,7 +6,6 @@ import {
   previewReport,
   downloadReport,
   getCategories,
-  getSuppliers,
   type ReportData,
   type ReportFilters,
 } from '../api/reports';
@@ -16,7 +15,6 @@ const REPORT_TYPES = {
   'Inventory Report': 'inventory',
   'Sales Report': 'sales',
   'Expiry Report': 'expiry',
-  'Purchase Report': 'purchase',
 } as const;
 
 type ReportTypeKey = keyof typeof REPORT_TYPES;
@@ -29,7 +27,6 @@ const ReportGenerationPage = () => {
   const [toDate, setToDate] = useState('');
   const [medicineCategory, setMedicineCategory] = useState('All');
   const [status, setStatus] = useState('All Status');
-  const [supplier, setSupplier] = useState('All');
   const [daysThreshold, setDaysThreshold] = useState('30');
 
   // State for data
@@ -41,39 +38,26 @@ const ReportGenerationPage = () => {
   const [categories, setCategories] = useState<{ id: number; name: string }[]>(
     [],
   );
-  const [suppliers, setSuppliers] = useState<{ id: number; name: string }[]>(
-    [],
-  );
 
   // Load filter options on component mount
   useEffect(() => {
     const loadFilterOptions = async () => {
       try {
-        const [categoriesData, suppliersData] = await Promise.all([
-          getCategories().catch((err) => {
-            console.warn('Failed to load categories:', err);
-            return [];
-          }),
-          getSuppliers().catch((err) => {
-            console.warn('Failed to load suppliers:', err);
-            return [];
-          }),
-        ]);
+        const categoriesData = await getCategories().catch((err) => {
+          console.warn('Failed to load categories:', err);
+          return [];
+        });
 
         // Extract data from API response structure
         const categoriesArray =
           (categoriesData as any)?.data || categoriesData || [];
-        const suppliersArray =
-          (suppliersData as any)?.data || suppliersData || [];
 
         // Ensure we have arrays even if API calls fail
         setCategories(Array.isArray(categoriesArray) ? categoriesArray : []);
-        setSuppliers(Array.isArray(suppliersArray) ? suppliersArray : []);
       } catch (error) {
         console.error('Error loading filter options:', error);
         // Set empty arrays as fallback
         setCategories([]);
-        setSuppliers([]);
       }
     };
 
@@ -91,7 +75,6 @@ const ReportGenerationPage = () => {
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
         status: getStatusValue(status, reportType),
-        supplier: supplier !== 'All' ? supplier : undefined,
         daysThreshold: parseInt(daysThreshold) || 30,
       };
 
@@ -119,7 +102,6 @@ const ReportGenerationPage = () => {
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
         status: getStatusValue(status, reportType),
-        supplier: supplier !== 'All' ? supplier : undefined,
         daysThreshold: parseInt(daysThreshold) || 30,
       };
 
@@ -146,7 +128,6 @@ const ReportGenerationPage = () => {
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
         status: getStatusValue(status, reportType),
-        supplier: supplier !== 'All' ? supplier : undefined,
         daysThreshold: parseInt(daysThreshold) || 30,
       };
 
@@ -182,15 +163,6 @@ const ReportGenerationPage = () => {
         Declined: 'declined',
       };
       return salesMap[status];
-    } else if (reportType === 'Purchase Report') {
-      const purchaseMap: Record<string, string> = {
-        'All Status': 'all',
-        Pending: 'pending',
-        Completed: 'completed',
-        'Partially Completed': 'partially_completed',
-        Cancelled: 'cancelled',
-      };
-      return purchaseMap[status];
     }
     return undefined;
   };
@@ -210,14 +182,6 @@ const ReportGenerationPage = () => {
           { value: 'Completed', text: 'Completed' },
           { value: 'Pending', text: 'Pending' },
           { value: 'Declined', text: 'Declined' },
-        ];
-      case 'Purchase Report':
-        return [
-          { value: 'All Status', text: 'All Status' },
-          { value: 'Pending', text: 'Pending' },
-          { value: 'Completed', text: 'Completed' },
-          { value: 'Partially Completed', text: 'Partially Completed' },
-          { value: 'Cancelled', text: 'Cancelled' },
         ];
       default:
         return [];
@@ -239,23 +203,6 @@ const ReportGenerationPage = () => {
         : fallbackCategories;
 
     return [{ value: 'All', text: 'All' }, ...categoryOptions];
-  };
-
-  // Get supplier options
-  const getSupplierOptions = () => {
-    // Fallback mock data if suppliers is empty or not an array
-    const fallbackSuppliers = [
-      { value: 'PharmaCorp Inc.', text: 'PharmaCorp Inc.' },
-      { value: 'MedSupply Ltd.', text: 'MedSupply Ltd.' },
-      { value: 'HealthMeds Co.', text: 'HealthMeds Co.' },
-    ];
-
-    const supplierOptions =
-      Array.isArray(suppliers) && suppliers.length > 0
-        ? suppliers.map((sup) => ({ value: sup.name, text: sup.name }))
-        : fallbackSuppliers;
-
-    return [{ value: 'All', text: 'All' }, ...supplierOptions];
   };
 
   // Show loading state
@@ -306,15 +253,12 @@ const ReportGenerationPage = () => {
                   setStatus('Current Stock');
                 } else if (newReportType === 'Sales Report') {
                   setStatus('All Status');
-                } else if (newReportType === 'Purchase Report') {
-                  setStatus('All Status');
                 }
               }}
             >
               <SelectItem value="Inventory Report" text="Inventory Report" />
               <SelectItem value="Sales Report" text="Sales Report" />
               <SelectItem value="Expiry Report" text="Expiry Report" />
-              <SelectItem value="Purchase Report" text="Purchase Report" />
             </Select>
           </div>
 
@@ -375,25 +319,6 @@ const ReportGenerationPage = () => {
                 onChange={(e) => setStatus(e.target.value)}
               >
                 {getStatusOptions().map((option) => (
-                  <SelectItem
-                    key={option.value}
-                    value={option.value}
-                    text={option.text}
-                  />
-                ))}
-              </Select>
-            </div>
-          )}
-
-          {reportType === 'Purchase Report' && (
-            <div className="min-w-[180px]">
-              <Select
-                id="supplier"
-                labelText="Supplier"
-                value={supplier}
-                onChange={(e) => setSupplier(e.target.value)}
-              >
-                {getSupplierOptions().map((option) => (
                   <SelectItem
                     key={option.value}
                     value={option.value}

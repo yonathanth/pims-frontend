@@ -20,28 +20,9 @@ const SellerPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content with new layout */}
-        <div className="px-6 ml-6 flex flex-col h-[calc(100vh-200px)]">
-          {/* Top Section - Pending Sales (40% of screen) */}
-          <div className="mb-6" style={{ height: '40vh' }}>
-            <PendingSalesStack />
-          </div>
-
-          {/* Bottom Section - Sales History (60% of screen) */}
-          <div className="flex-1" style={{ minHeight: '60vh' }}>
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold mb-2">Sales History</h2>
-              <p
-                className="text-sm text-gray-600 mb-4"
-                style={{ color: 'var(--cds-text-secondary)' }}
-              >
-                Complete history of all sales transactions
-              </p>
-            </div>
-            <div className="h-full overflow-hidden">
-              <SalesTransactionTable />
-            </div>
-          </div>
+        {/* Main Content - Full screen for pending sales */}
+        <div className="px-6 ml-6 flex flex-col h-[calc(100vh-200px)] pb-8">
+          <PendingSalesStack />
         </div>
       </div>
     </DashboardLayout>
