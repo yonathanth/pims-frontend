@@ -2,7 +2,6 @@ import { Dropdown } from '@carbon/react';
 import { topSuppliersHeaders, mostOrderedProductsHeaders } from '../../../data/tabTableData';
 import { SortableTable } from '../../../components/SortableTable';
 import SummaryCards from './SummaryCards';
-import { supplierSummaryData } from '../../../data/summaryData';
 import type { AnalyticsResponseDto, ProductDto } from '../../../api/analytics';
 import { useMemo } from 'react';
 
@@ -12,17 +11,39 @@ interface SupplyAnalyticsProps {
   onChangeSort: (v: 'volume' | 'value' | 'frequency') => void;
 }
 const SupplyAnalytics: React.FC<SupplyAnalyticsProps> = ({ analytics, sortBy, onChangeSort }) => {
-  const summary =
-    analytics?.metrics && analytics.metrics.length > 0
-      ? analytics.metrics.slice(0, 5).map((m) => ({
-          label: m.label,
-          value:
-            typeof m.value === 'object' && m.value !== null
-              ? JSON.stringify(m.value)
-              : String(m.value ?? ''),
-          trend: m.trend_up ? ('up' as const) : ('down' as const),
-        }))
-      : supplierSummaryData;
+  // Supplier-specific cards: Total Suppliers, Incomplete Orders, Delayed Orders, Average Delivery Time, Most Ordered Product
+  const supplierCardLabels = [
+    'Total Suppliers',
+    'Incomplete Orders',
+    'Delayed Orders',
+    'Average Delivery Time',
+    'Most Ordered Product',
+  ];
+
+  // Map backend field names to display names for suppliers
+  const fieldMapping: Record<string, string[]> = {
+    'Total Suppliers': ['Total Suppliers'],
+    'Incomplete Orders': ['Incomplete Orders'],
+    'Delayed Orders': ['Delayed Orders'],
+    'Average Delivery Time': ['Average Delivery Time'],
+    'Most Ordered Product': ['Most Ordered Product'],
+  };
+
+  const backendCards = analytics?.metrics || [];
+  const inventoryCards = analytics?.inventory_cards || [];
+  const allCards = [...backendCards, ...inventoryCards];
+
+  const summary = supplierCardLabels.map(label => {
+    const possibleNames = fieldMapping[label] || [label];
+    const found = allCards.find(card => 
+      possibleNames.some(name => card.label.toLowerCase() === name.toLowerCase())
+    );
+    return {
+      label,
+      value: found ? (typeof found.value === 'object' && found.value !== null ? JSON.stringify(found.value) : String(found.value ?? '—')) : '—',
+      trend: found ? (found.trend_up ? 'up' : 'down') : 'up',
+    } as { label: string; value: string | number | Record<string, unknown> | null; trend: 'up' | 'down' };
+  });
   const suppliersTable = useMemo(() => {
     const rows = analytics?.top_suppliers?.length
       ? analytics.top_suppliers.map((s) => ({

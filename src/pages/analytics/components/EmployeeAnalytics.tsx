@@ -3,19 +3,37 @@ import {  SortableTable
 } from "../../../components/SortableTable"
 import { employeeVolumeSoldHeaders } from "../../../data/tabTableData"
 import SummaryCards from "./SummaryCards"
-import { employeeSummaryData } from "../../../data/summaryData"
+// import { employeeSummaryData } from "../../../data/summaryData" // removed unused import
 import type { AnalyticsResponseDto } from "../../../api/analytics";
 import { useMemo } from 'react';
 
 interface EmployeeAnalyticsProps { analytics?: AnalyticsResponseDto | null; sortBy: 'volume'|'name'; onChangeSort: (v: 'volume'|'name') => void }
 const EmployeeAnalytics: React.FC<EmployeeAnalyticsProps> = ({ analytics, sortBy, onChangeSort }) => {
-  const summary = (analytics?.metrics && analytics.metrics.length > 0)
-    ? analytics.metrics.slice(0,4).map(m => ({
-        label: m.label,
-        value: typeof m.value === 'object' && m.value !== null ? JSON.stringify(m.value) : String(m.value ?? ''),
-        trend: m.trend_up ? 'up' as const : 'down' as const
-      }))
-    : employeeSummaryData;
+  // Employee-specific cards: Total Staff, Sales Per Desk, Transaction Per Desk, Top Performer
+  const employeeCardLabels = [
+    'Total Staff',
+    'Sales Per Staff',
+    'Transaction Per Staff',
+    'Top Performer',
+  ];
+
+  const backendCards = analytics?.metrics || [];
+  // Map old backend field names to new card names for staff cards
+  const fieldMapping: Record<string, string[]> = {
+    'Total Staff': ['Total Staff'],
+    'Sales Per Staff': ['Sales Per Staff', 'Sales Per Desk'],
+    'Transaction Per Staff': ['Transaction Per Staff', 'Transaction Per Desk'],
+    'Top Performer': ['Top Performer'],
+  };
+  const summary = employeeCardLabels.map(label => {
+    const possibleNames = fieldMapping[label] || [label];
+    const found = backendCards.find(card => possibleNames.some(name => card.label.toLowerCase() === name.toLowerCase()));
+    return {
+      label,
+      value: found ? (typeof found.value === 'object' && found.value !== null ? JSON.stringify(found.value) : String(found.value ?? '—')) : '—',
+      trend: found ? (found.trend_up ? 'up' : 'down') : 'up',
+    } as { label: string; value: string | number | Record<string, unknown> | null; trend: 'up' | 'down' };
+  });
   const performers = useMemo(() => {
     const rows = (analytics?.top_performers?.length)
       ? analytics.top_performers.map((p, idx) => ({

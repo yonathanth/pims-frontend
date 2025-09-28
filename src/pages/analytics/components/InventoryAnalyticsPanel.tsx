@@ -1,5 +1,4 @@
 import SummaryCards from './SummaryCards';
-import { inventorySummaryData } from '../../../data/summaryData';
 import { inventoryOptions } from '../../../data/donutData';
 import { DonutChart, GroupedBarChart } from "@carbon/charts-react";
 import { inventoryBarOptions } from '../../../data/barData';
@@ -12,17 +11,44 @@ interface InventoryAnalyticsPanelProps {
 }
 
 const InventoryAnalyticsPanel: React.FC<InventoryAnalyticsPanelProps> = ({ analytics }) => {
-  // Summary cards (inventory specific)
-  const summaryData = (analytics?.inventory_cards && analytics.inventory_cards.length > 0)
-    ? analytics.inventory_cards.map(metric => ({
-        label: metric.label,
-        // if value is an object (e.g. incomplete breakdown) stringify it so it renders properly
-        value: typeof metric.value === 'object' && metric.value !== null
-          ? JSON.stringify(metric.value)
-          : String(metric.value ?? ''),
-        trend: metric.trend_up ? 'up' as const : 'down' as const
-      }))
-    : inventorySummaryData;
+  // Summary cards (inventory specific) - filter for inventory-related cards only
+  const inventoryCardLabels = [
+    'Total Items',
+    'Turnover Rate',
+    'Total Stock Value',
+    'Expired Items',
+    'Expiring in 30 days',
+    'Low Stock Items',
+    'Out of Stock',
+  ];
+
+  // Map backend field names to display names for inventory
+  const fieldMapping: Record<string, string[]> = {
+    'Total Items': ['Total Items'],
+    'Turnover Rate': ['Turnover Rate', 'Turn Over Rate'],
+    'Total Stock Value': ['Total Stock Value'],
+    'Expired Items': ['Expired Items'],
+    'Expiring in 30 days': ['Expiring in 30 days', 'Expiring in a Month'],
+    'Low Stock Items': ['Low Stock Items', 'Low Stock'],
+    'Out of Stock': ['Out of Stock'],
+  };
+
+  // Build summaryData: always show all cards, use backend value if present, else placeholder
+  const backendCards = analytics?.inventory_cards || [];
+  const metricsCards = analytics?.metrics || [];
+  const allCards = [...backendCards, ...metricsCards];
+
+  const summaryData = inventoryCardLabels.map(label => {
+    const possibleNames = fieldMapping[label] || [label];
+    const found = allCards.find(card => 
+      possibleNames.some(name => card.label.toLowerCase() === name.toLowerCase())
+    );
+    return {
+      label,
+      value: found ? (typeof found.value === 'object' && found.value !== null ? JSON.stringify(found.value) : String(found.value ?? '—')) : '—',
+      trend: found ? (found.trend_up ? 'up' : 'down') : 'up',
+    } as { label: string; value: string | number | Record<string, unknown> | null; trend: 'up' | 'down' };
+  });
 
   // Donut data strictly from backend; empty array if none
   const donutData = (analytics?.distribution_by_category && analytics.distribution_by_category.length > 0)
@@ -43,7 +69,8 @@ const InventoryAnalyticsPanel: React.FC<InventoryAnalyticsPanelProps> = ({ analy
   return (
     <div>
       <div className='px-2'>
-        <SummaryCards summaryData={summaryData} />
+        {/* Only show the first 10 cards (2 rows if 5 per row) */}
+        <SummaryCards summaryData={summaryData.slice(0, 10)} />
       </div>
       <div className="flex flex-col lg:flex-row  px-2">
         <div className="flex-1 rounded-md p-4">

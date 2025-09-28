@@ -1,5 +1,4 @@
 import SummaryCards from "./SummaryCards";
-import { salesSummaryData } from "../../../data/summaryData";
 import { DonutChart, GroupedBarChart } from "@carbon/charts-react";
 import { salesOptions } from "../../../data/donutData";
 import { salesBarOptions } from "../../../data/barData";
@@ -12,13 +11,38 @@ interface SalesAnalyticsProps { analytics?: AnalyticsResponseDto | null }
 const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ analytics }) => {
   const [sortFastBy] = useState<'qty'|'price'>('qty');
   const [sortSlowBy] = useState<'qty'|'price'>('qty');
-  const summary = (analytics?.metrics && analytics.metrics.length > 0)
-    ? analytics.metrics.map(m => ({
-        label: m.label,
-        value: typeof m.value === 'object' && m.value !== null ? JSON.stringify(m.value) : String(m.value ?? ''),
-        trend: m.trend_up ? 'up' as const : 'down' as const
-      }))
-    : salesSummaryData;
+  
+  // Sales-specific cards: Total Sales, Profit, Total Transactions, Average Sales Value, Most Sold Item, Total Revenue
+  const salesCardLabels = [
+    'Total Sales',
+    'Total Profit', 
+    'Average Sales Value',
+    'Most Sold Item',
+  ];
+
+  // Map backend field names to display names
+  const fieldMapping: Record<string, string[]> = {
+    'Total Sales': ['Total Sales (qty)', 'Total Sales'],
+    'Total Profit': ['Total Profit', 'Profit'],
+    'Average Sales Value': ['Avg Sale Value (per unit)', 'Average Sales Value', 'Avg Sale Value'],
+    'Most Sold Item': ['Top seller', 'Most Sold Item', 'Top Seller'],
+  };
+
+  const backendCards = analytics?.metrics || [];
+  const inventoryCards = analytics?.inventory_cards || [];
+  const allCards = [...backendCards, ...inventoryCards];
+
+  const summary = salesCardLabels.map(label => {
+    const possibleNames = fieldMapping[label] || [label];
+    const found = allCards.find(card => 
+      possibleNames.some(name => card.label.toLowerCase() === name.toLowerCase())
+    );
+    return {
+      label,
+      value: found ? (typeof found.value === 'object' && found.value !== null ? JSON.stringify(found.value) : String(found.value ?? '—')) : '—',
+      trend: found ? (found.trend_up ? 'up' : 'down') : 'up',
+    } as { label: string; value: string | number | Record<string, unknown> | null; trend: 'up' | 'down' };
+  });
   const monthly = (analytics?.monthly_stocked_vs_sold?.length)
     ? analytics.monthly_stocked_vs_sold.flatMap(m => ([
         { group: 'Stocked', key: m.month, value: m.stocked },
