@@ -10,8 +10,8 @@ export function useOrders() {
   const [limit, setLimit] = useState(10);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState<
-    'createdDate' | 'expectedDate' | 'status'
-  >('createdDate');
+    'createdDate' | 'expectedDate' | 'status' | 'id'
+  >('id');
   const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');
   const [totalItems, setTotalItems] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);

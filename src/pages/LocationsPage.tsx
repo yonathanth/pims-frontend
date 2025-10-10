@@ -22,6 +22,7 @@ import type {
 
 // Define location headers for the table
 const locationHeaders = [
+  { key: 'id', header: 'ID' },
   { key: 'name', header: 'Location Name' },
   { key: 'type', header: 'Type' },
   { key: 'maxCapacity', header: 'Max Capacity' },
@@ -77,7 +78,7 @@ const LocationsPage = () => {
     const res = await addLocation({
       name,
       description: description || undefined,
-      max_capacity: maxCapacity ? parseInt(maxCapacity, 10) : undefined,
+      max_capacity: maxCapacity || undefined,
       location_type: locationType,
     } as CreateLocationInput);
 
@@ -225,10 +226,10 @@ const LocationsPage = () => {
     {
       key: 'maxCapacity',
       label: 'Max Capacity',
-      type: 'number',
+      type: 'text',
       value: maxCapacity,
       onChange: (value) => setMaxCapacity(value as string),
-      placeholder: 'Enter max capacity',
+      placeholder: 'Enter max capacity (e.g., 1000, unlimited, varies)',
     },
     {
       key: 'description',
@@ -307,17 +308,23 @@ const LocationsPage = () => {
           sortColumn: sortBy,
           sortDirection: sortDir.toUpperCase() as 'ASC' | 'DESC',
           onSort: (col, dir) => {
-            const allowed = ['name', 'locationType', 'maxCapacity'] as const;
+            const allowed = [
+              'name',
+              'locationType',
+              'maxCapacity',
+              'id',
+            ] as const;
             const mapped = col === 'type' ? 'locationType' : col;
             if (!(allowed as readonly string[]).includes(mapped as any)) return;
             setSortBy(mapped as any);
             setSortDir(dir.toLowerCase() as 'asc' | 'desc');
+            setPage(1); // Reset to first page when sorting changes
           },
           search: q,
           onSearchChange: (value) => setQ(value),
           activeFilter: 'All',
           onFilterChange: () => {},
-          sortableKeys: ['name', 'type', 'maxCapacity'],
+          sortableKeys: ['id', 'name', 'type', 'maxCapacity'],
         }}
         renderCell={(row, key) =>
           key === 'actions' ? renderActionsMenu(row) : (row as any)[key]
@@ -400,12 +407,12 @@ const LocationsPage = () => {
                 {
                   key: 'maxCapacity',
                   label: 'Max Capacity',
-                  type: 'number',
+                  type: 'text',
                   value: String(editLocation.maxCapacity || ''),
                   onChange: (v) =>
                     setEditLocation({
                       ...editLocation,
-                      maxCapacity: v ? parseInt(v as string, 10) : null,
+                      maxCapacity: (v as string) || null,
                     }),
                 },
                 {

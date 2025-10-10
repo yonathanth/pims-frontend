@@ -4,7 +4,6 @@ import {
   TextInput,
   Select,
   SelectItem,
-  Checkbox,
   PasswordInput,
   InlineNotification,
 } from '@carbon/react';
@@ -14,29 +13,19 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Step1() {
   const [username, setUsername] = useState('');
-  const [role, setRole] = useState<'' | 'Admin' | 'Pharmacist' | 'Clerk'>('');
+  const [role, setRole] = useState<'' | 'Admin'>('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [autoLock, setAutoLock] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const { roles, loading: rolesLoading } = useRoles();
+  const { loading: rolesLoading } = useRoles();
 
-  // If useRoles provides roles, use their name as the value (assumes `r.name` is one of the enum strings).
-  const roleOptions = useMemo(
-    () =>
-      roles && roles.length > 0
-        ? roles.map((r) => ({ text: r.name, value: r.name }))
-        : [
-            { text: 'Admin', value: 'Admin' },
-            { text: 'Pharmacist', value: 'Pharmacist' },
-            { text: 'Clerk', value: 'Clerk' },
-          ],
-    [roles],
-  );
+  // Only allow Admin role for account setup
+  const roleOptions = useMemo(() => [{ text: 'Admin', value: 'Admin' }], []);
 
   // Store form data in localStorage for StepLayout to access (ensure latest value, avoiding stale state reads)
   const persistForm = (overrides: Partial<Record<string, any>> = {}) => {
@@ -45,9 +34,9 @@ export default function Step1() {
       role,
       password,
       confirmPassword,
-      autoLock,
       fullName,
       email,
+      phoneNumber,
       ...overrides,
     };
     localStorage.setItem('onboarding_step1', JSON.stringify(formData));
@@ -57,17 +46,25 @@ export default function Step1() {
     (async () => {
       try {
         const status = await authStatus();
-        if (status?.initialized) {
+        if (status?.hasAdminUser) {
           navigate('/login', { replace: true });
         }
-      } catch {
-        // ignore
+      } catch (error) {
+        // If API connection fails, show error and redirect back to step 0
+        console.error('API connection failed:', error);
+        setError(
+          'API connection failed. Please check your server URL configuration.',
+        );
+        // Redirect after a short delay to show the error message
+        setTimeout(() => {
+          navigate('/onboarding/step0', { replace: true });
+        }, 2000);
       }
     })();
   }, [navigate]);
 
   return (
-    <StepLayout currentStep={0}>
+    <StepLayout currentStep={2}>
       <div className="flex flex-col mt-6 px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-7xl mx-auto">
           {/* Form Section */}
@@ -114,6 +111,18 @@ export default function Step1() {
                 }}
               />
               <TextInput
+                id="phone-number"
+                labelText="Phone Number"
+                placeholder="Enter Phone Number (optional)"
+                size="lg"
+                value={phoneNumber}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setPhoneNumber(v);
+                  persistForm({ phoneNumber: v });
+                }}
+              />
+              <TextInput
                 id="username"
                 labelText="Username"
                 placeholder="Enter Username"
@@ -131,11 +140,7 @@ export default function Step1() {
                 value={role}
                 size="lg"
                 onChange={(e) => {
-                  const v = e.target.value as
-                    | ''
-                    | 'Admin'
-                    | 'Pharmacist'
-                    | 'Clerk';
+                  const v = e.target.value as '' | 'Admin';
                   setRole(v);
                   persistForm({ role: v });
                 }}
@@ -179,16 +184,6 @@ export default function Step1() {
                 }}
               />
             </div>
-
-            <Checkbox
-              id="auto-lock"
-              labelText="Enable Auto-Lock After Inactivity"
-              checked={autoLock}
-              onChange={(_, { checked }) => {
-                setAutoLock(checked);
-                persistForm({ autoLock: checked });
-              }}
-            />
           </div>
         </div>
       </div>

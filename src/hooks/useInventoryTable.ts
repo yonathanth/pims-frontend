@@ -42,9 +42,14 @@ export function useInventoryTable() {
   const [limit, setLimit] = useState(10);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState<
-    'purchaseDate' | 'expiryDate' | 'currentQty' | 'drugName' | 'sku'
-  >('expiryDate');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    | 'purchaseDate'
+    | 'expiryDate'
+    | 'currentQty'
+    | 'drugName'
+    | 'sku'
+    | 'batchNumber'
+  >('batchNumber');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [drugId, setDrugId] = useState<number | undefined>(undefined);
   const [supplierId, setSupplierId] = useState<number | undefined>(undefined);
   const [stockStatus, setStockStatus] = useState<
@@ -65,7 +70,7 @@ export function useInventoryTable() {
       const params: any = {
         page,
         limit,
-        sortBy,
+        sortBy: sortBy === 'batchNumber' ? 'id' : sortBy, // Map batchNumber to id for backend
         sortDir,
       };
 
@@ -81,6 +86,7 @@ export function useInventoryTable() {
 
       const mapped: InventoryRow[] = (result.data || []).map((item: any) => ({
         id: String(item.id),
+        // Use drugName which now contains tradeName ?? genericName from backend
         drugName: item.drugName || 'Unknown Drug',
         sku: item.drugSku || '',
         batchNumber: String(item.id), // Using batch ID as batch number

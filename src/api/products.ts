@@ -10,14 +10,14 @@ function mapDrugsQuery(query: ListDrugsQuery = {}) {
     const limit = query.limit ?? 50;
     params.page = Math.floor((query.offset as number) / limit) + 1;
   }
-  if (query.category_id || (query as any).categoryId) {
+  if ((query as any).category_id || (query as any).categoryId) {
     params.categoryId = (query as any).categoryId ?? (query as any).category_id;
   }
   if (query.sort_by) {
     const map: any = {
       sku: 'sku',
       generic_name: 'genericName',
-      brand_name: 'brandName',
+      trade_name: 'tradeName',
     };
     params.sortBy = map[query.sort_by] ?? 'genericName';
   }
@@ -61,7 +61,7 @@ export const createDrug = async (input: any) => {
   const payload = {
     sku: input.sku,
     genericName: input.generic_name ?? input.genericName,
-    brandName: input.brand_name ?? input.brandName,
+    tradeName: input.trade_name ?? input.tradeName,
     strength: input.strength,
     description: input.description,
     categoryId: input.category_id ?? input.categoryId,
@@ -73,7 +73,7 @@ export const updateDrug = async (id: number, input: any) => {
   const payload = {
     sku: input.sku,
     genericName: input.generic_name ?? input.genericName,
-    brandName: input.brand_name ?? input.brandName,
+    tradeName: input.trade_name ?? input.tradeName,
     strength: input.strength,
     description: input.description,
     categoryId: input.category_id ?? input.categoryId,

@@ -1,6 +1,6 @@
 import { SimpleBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
-import { topSellingDrugs } from '../../../data/barData';
+// Remove fallback mock; show empty chart when no data
 import type { TopSellingDrug } from '../../../api/dashboard';
 import ChartErrorBoundary from '../../../components/ChartErrorBoundary';
 
@@ -11,11 +11,8 @@ interface TopSellingDrugsProps {
 const TopSellingDrugs = ({ data }: TopSellingDrugsProps) => {
   // Transform backend data to chart format
   const chartData = data
-    ? data.map((drug) => ({
-        group: drug.name,
-        value: drug.quantity,
-      }))
-    : topSellingDrugs.data;
+    ? data.map((drug) => ({ group: drug.name, value: drug.quantity }))
+    : [];
 
   // Create dynamic color scale based on the data
   const colorScale: Record<string, string> = {};

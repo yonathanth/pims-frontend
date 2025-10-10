@@ -16,7 +16,7 @@ export function useBatchTransactions() {
         page: 1,
       });
 
-      const transactions = result.data || [];
+      const transactions = (result as any).data || [];
       setTransactions(transactions);
       return transactions;
     } catch (err: any) {

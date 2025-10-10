@@ -1,6 +1,5 @@
 export interface AuditLogItem {
   id: string;
-  auditId: string;
   entityName: string;
   entityId: string;
   action: string;
@@ -18,7 +17,6 @@ export interface AuditLogItem {
 export const auditLogData: AuditLogItem[] = [
   {
     id: '1',
-    auditId: 'AUD-001',
     entityName: 'Inventory',
     entityId: 'INV-123',
     action: 'CREATE',
@@ -33,7 +31,6 @@ export const auditLogData: AuditLogItem[] = [
   },
   {
     id: '2',
-    auditId: 'AUD-002',
     entityName: 'Inventory',
     entityId: 'INV-124',
     action: 'UPDATE',
@@ -49,7 +46,6 @@ export const auditLogData: AuditLogItem[] = [
   },
   {
     id: '3',
-    auditId: 'AUD-003',
     entityName: 'User',
     entityId: 'USR-045',
     action: 'LOGIN',
@@ -63,7 +59,6 @@ export const auditLogData: AuditLogItem[] = [
   },
   {
     id: '4',
-    auditId: 'AUD-004',
     entityName: 'Product',
     entityId: 'PRD-789',
     action: 'DELETE',
@@ -78,7 +73,6 @@ export const auditLogData: AuditLogItem[] = [
   },
   {
     id: '5',
-    auditId: 'AUD-005',
     entityName: 'Order',
     entityId: 'ORD-456',
     action: 'CREATE',
@@ -93,7 +87,6 @@ export const auditLogData: AuditLogItem[] = [
   },
   {
     id: '6',
-    auditId: 'AUD-006',
     entityName: 'User',
     entityId: 'USR-067',
     action: 'UPDATE',
@@ -110,7 +103,7 @@ export const auditLogData: AuditLogItem[] = [
 ];
 
 export const auditLogHeaders = [
-  { key: 'auditId', header: 'Audit ID' },
+  { key: 'id', header: 'ID' },
   { key: 'entityName', header: 'Entity Name' },
   { key: 'entityId', header: 'Entity ID' },
   { key: 'action', header: 'Action' },

@@ -9,10 +9,10 @@ export function useProducts() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [q, setQ] = useState('');
-  const [sortBy, setSortBy] = useState<'sku' | 'genericName' | 'brandName'>(
-    'genericName',
-  );
-  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('ASC');
+  const [sortBy, setSortBy] = useState<
+    'sku' | 'genericName' | 'tradeName' | 'id'
+  >('id');
+  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [totalItems, setTotalItems] = useState(0);
 
@@ -38,7 +38,7 @@ export function useProducts() {
         id: String(drug.id ?? drug.drugId ?? drug.drug_id),
         name: drug.genericName ?? drug.generic_name,
         sku: drug.sku,
-        brand: drug.brandName ?? drug.brand_name ?? 'N/A',
+        tradeName: drug.tradeName ?? drug.trade_name ?? '',
         category: drug.categoryName ?? 'Unknown',
         categoryId: drug.categoryId ?? drug.category_id,
         strength: drug.strength,

@@ -5,9 +5,15 @@ import {
   PasswordInput,
   InlineNotification,
 } from '@carbon/react';
-import { Login as LoginIcon } from '@carbon/icons-react';
+import {
+  Login as LoginIcon,
+  Settings as SettingsIcon,
+  Debug as DebugIcon,
+} from '@carbon/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { login, authStatus } from '../api/auth';
+import { login } from '../api/auth';
+import ServerConfigModal from '../components/ServerConfigModal';
+import DebugPanel from '../components/DebugPanel';
 import logo from '../assets/Logo.svg';
 
 export default function LoginPage() {
@@ -15,6 +21,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isServerConfigOpen, setIsServerConfigOpen] = useState(false);
+  const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +45,16 @@ export default function LoginPage() {
     try {
       const session = await login(username, password);
       localStorage.setItem('session', JSON.stringify(session));
-      navigate('/dashboard');
+
+      // Redirect based on user role
+      if (session.user?.role === 'SELLER') {
+        navigate('/dashboard/seller');
+      } else if (session.user?.role === 'PHARMACIST') {
+        navigate('/dashboard/inventory');
+      } else {
+        // ADMIN and MANAGER default to admin dashboard
+        navigate('/dashboard/admin');
+      }
     } catch (err: any) {
       if (err.status === 401) {
         setError(
@@ -123,6 +140,28 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          {/* Subtle Settings and Debug Buttons */}
+          <div className="mt-6 text-center space-x-4">
+            <Button
+              kind="ghost"
+              size="sm"
+              onClick={() => setIsServerConfigOpen(true)}
+              renderIcon={SettingsIcon}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Server Configuration
+            </Button>
+            <Button
+              kind="ghost"
+              size="sm"
+              onClick={() => setIsDebugPanelOpen(true)}
+              renderIcon={DebugIcon}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Debug Logs
+            </Button>
+          </div>
+
           {/* Footer Links */}
           <div className="mt-8 text-center">
             <div
@@ -139,6 +178,18 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {/* Server Configuration Modal */}
+      <ServerConfigModal
+        isOpen={isServerConfigOpen}
+        onClose={() => setIsServerConfigOpen(false)}
+      />
+
+      {/* Debug Panel */}
+      <DebugPanel
+        isOpen={isDebugPanelOpen}
+        onClose={() => setIsDebugPanelOpen(false)}
+      />
     </div>
   );
 }

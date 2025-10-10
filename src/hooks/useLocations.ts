@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 import {
   listLocations,
   createLocation,
@@ -6,21 +6,20 @@ import {
   deleteLocation,
   listBatchesInLocation,
   locationsSummary,
-} from "../api/locations";
+} from '../api/locations';
 import type {
   CreateLocationInput,
   UpdateLocationInput,
-  LocationWithUtilDto,
   LocationBatchViewDto,
   LocationsSummaryDto,
   ListLocationsQuery,
-} from "../types/location";
+} from '../types/location';
 
 export interface LocationRow {
   id: string;
   name: string;
   type: string;
-  maxCapacity: number | null;
+  maxCapacity: string | null;
   currentQuantity: number;
   utilization: number; // integer percent for table
   status: string; // derived status label
@@ -29,9 +28,9 @@ export interface LocationRow {
 }
 
 function deriveStatus(util: number): string {
-  if (util >= 100) return "Full";
-  if (util >= 80) return "Near Full";
-  return "Active";
+  if (util >= 100) return 'Full';
+  if (util >= 80) return 'Near Full';
+  return 'Active';
 }
 
 export function useLocations(initialQuery: ListLocationsQuery = {}) {
@@ -40,13 +39,15 @@ export function useLocations(initialQuery: ListLocationsQuery = {}) {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<LocationsSummaryDto | null>(null);
   const [query, setQuery] = useState<ListLocationsQuery>(initialQuery);
-  const [loadingBatches, setLoadingBatches] = useState<Record<string, boolean>>({});
+  const [loadingBatches, setLoadingBatches] = useState<Record<string, boolean>>(
+    {},
+  );
 
   const fetchLocations = useCallback(async () => {
     setLoading(true);
     try {
       const rows = await listLocations(query);
-      const mapped: LocationRow[] = rows.map((r: LocationWithUtilDto) => {
+      const mapped: LocationRow[] = (rows as any).map((r: any) => {
         const loc: any = r.location;
         const id = loc.locationId ?? loc.location_id;
         const util = Math.round(r.utilization_percent);
@@ -64,7 +65,7 @@ export function useLocations(initialQuery: ListLocationsQuery = {}) {
       setLocations(mapped);
       setError(null);
     } catch (e) {
-      setError("Failed to fetch locations");
+      setError('Failed to fetch locations');
       setLocations([]);
     } finally {
       setLoading(false);
@@ -80,58 +81,89 @@ export function useLocations(initialQuery: ListLocationsQuery = {}) {
     }
   }, []);
 
-  useEffect(() => { fetchLocations(); }, [fetchLocations]);
-  useEffect(() => { fetchSummary(); }, [fetchSummary]);
+  useEffect(() => {
+    fetchLocations();
+  }, [fetchLocations]);
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
 
-  const refetch = () => { fetchLocations(); fetchSummary(); };
+  const refetch = () => {
+    fetchLocations();
+    fetchSummary();
+  };
 
-  const addLocation = async (input: Omit<CreateLocationInput, "current_qty"> & { current_qty?: number }) => {
+  const addLocation = async (
+    input: Omit<CreateLocationInput, 'current_qty'> & { current_qty?: number },
+  ) => {
     const created = await createLocation({ current_qty: 0, ...input });
-    const util = created.maxCapacity ? Math.round((created.currentQty / created.maxCapacity) * 100) : 0;
-    setLocations(prev => [{
-      id: String(created.locationId ?? (created as any).location_id),
-      name: created.name,
-      type: created.locationType ?? (created as any).location_type,
-      maxCapacity: created.maxCapacity ?? (created as any).max_capacity ?? null,
-      currentQuantity: created.currentQty ?? (created as any).current_qty ?? 0,
-      utilization: util,
-      status: deriveStatus(util),
-      description: created.description ?? undefined,
-    }, ...prev]);
+    const util = (created as any).maxCapacity
+      ? Math.round(
+          ((created as any).currentQty /
+            parseFloat((created as any).maxCapacity)) *
+            100,
+        )
+      : 0;
+    setLocations((prev) => [
+      {
+        id: String((created as any).locationId ?? (created as any).location_id),
+        name: (created as any).name,
+        type: (created as any).locationType ?? (created as any).location_type,
+        maxCapacity:
+          (created as any).maxCapacity ?? (created as any).max_capacity ?? null,
+        currentQuantity:
+          (created as any).currentQty ?? (created as any).current_qty ?? 0,
+        utilization: util,
+        status: deriveStatus(util),
+        description: (created as any).description ?? undefined,
+      },
+      ...prev,
+    ]);
     fetchSummary();
   };
 
   const editLocation = async (id: string, input: UpdateLocationInput) => {
     const updated = await updateLocation(Number(id), input);
-    const maxCap = updated.maxCapacity ?? (updated as any).max_capacity ?? null;
-    const curr = updated.currentQty ?? (updated as any).current_qty ?? 0;
+    const maxCap =
+      (updated as any).maxCapacity ?? (updated as any).max_capacity ?? null;
+    const curr =
+      (updated as any).currentQty ?? (updated as any).current_qty ?? 0;
     const util = maxCap ? Math.round((curr / maxCap) * 100) : 0;
-    setLocations(prev => prev.map(l => l.id === id ? {
-      ...l,
-      name: updated.name,
-      type: updated.locationType ?? (updated as any).location_type,
-      maxCapacity: maxCap,
-      currentQuantity: curr,
-      utilization: util,
-      status: deriveStatus(util),
-      description: updated.description ?? undefined,
-    } : l));
+    setLocations((prev) =>
+      prev.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              name: (updated as any).name,
+              type:
+                (updated as any).locationType ?? (updated as any).location_type,
+              maxCapacity: maxCap,
+              currentQuantity: curr,
+              utilization: util,
+              status: deriveStatus(util),
+              description: (updated as any).description ?? undefined,
+            }
+          : l,
+      ),
+    );
     fetchSummary();
   };
 
   const removeLocation = async (id: string) => {
     await deleteLocation(Number(id));
-    setLocations(prev => prev.filter(l => l.id !== id));
+    setLocations((prev) => prev.filter((l) => l.id !== id));
     fetchSummary();
   };
 
   const loadBatches = async (id: string) => {
-    setLoadingBatches(prev => ({ ...prev, [id]: true }));
+    setLoadingBatches((prev) => ({ ...prev, [id]: true }));
     try {
       const batches = await listBatchesInLocation(Number(id));
-      setLocations(prev => prev.map(l => l.id === id ? { ...l, batches } : l));
+      setLocations((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, batches } : l)),
+      );
     } finally {
-      setLoadingBatches(prev => ({ ...prev, [id]: false }));
+      setLoadingBatches((prev) => ({ ...prev, [id]: false }));
     }
   };
 

@@ -1,31 +1,31 @@
-import React from "react";
+import React from 'react';
 
 interface SummaryCardProps {
   summaryData: {
     label: string;
     value: string | number | Record<string, unknown> | null;
-    trend: "up" | "down";
+    trend: 'up' | 'down';
   }[];
 }
-
 
 const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
   const normalizeSign = (p: string) => {
     // collapse odd sign combinations like "+-83.1%" -> "-83.1%"
     let s = p.trim();
-    if (s.startsWith("+-") || s.startsWith("-+")) s = "-" + s.slice(2);
-    if (s.startsWith("++")) s = "+" + s.slice(2);
-    if (s.startsWith("--")) s = "-" + s.slice(2);
+    if (s.startsWith('+-') || s.startsWith('-+')) s = '-' + s.slice(2);
+    if (s.startsWith('++')) s = '+' + s.slice(2);
+    if (s.startsWith('--')) s = '-' + s.slice(2);
     return s;
   };
 
-  const isIncompleteOrdersLabel = (label: string) => /incomplete\s*orders\s*breakdown/i.test(label);
+  const isIncompleteOrdersLabel = (label: string) =>
+    /incomplete\s*orders\s*breakdown/i.test(label);
 
-  type IncompleteOrders = { pending?: number | string | null };
+  // type IncompleteOrders = { pending?: number | string | null };
   const extractPending = (obj: Record<string, unknown>): number => {
     let raw: number | string | null | undefined;
-    if ("pending" in obj) {
-      raw = obj["pending"] as number | string | null | undefined;
+    if ('pending' in obj) {
+      raw = obj['pending'] as number | string | null | undefined;
     } else {
       raw = undefined;
     }
@@ -35,17 +35,23 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
 
   const parseValue = (
     label: string,
-    value: string | number | Record<string, any> | null
+    value: string | number | Record<string, any> | null,
   ): { displayLabel: string; main: string; percent?: string } => {
     let displayLabel = label;
     // If value is object and label indicates incomplete orders, show pending only
     if (value && typeof value === 'object') {
       if (isIncompleteOrdersLabel(label)) {
         displayLabel = 'Pending Orders';
-        return { displayLabel, main: String(extractPending(value as Record<string, unknown>)) };
+        return {
+          displayLabel,
+          main: String(extractPending(value as Record<string, unknown>)),
+        };
       }
       // For other objects, show a compact count of keys
-      return { displayLabel, main: `${Object.keys(value).length} key${Object.keys(value).length !== 1 ? 's' : ''}` };
+      return {
+        displayLabel,
+        main: `${Object.keys(value).length} key${Object.keys(value).length !== 1 ? 's' : ''}`,
+      };
     }
     let str = String(value ?? '');
     // Handle when backend sends JSON string for breakdown
@@ -61,7 +67,10 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
       } catch (err) {
         // Intentionally non-fatal; backend might send plain strings. Log for observability.
         if (process.env.NODE_ENV !== 'production') {
-          console.error("Failed to parse JSON in SummaryCards.parseValue:", err);
+          console.error(
+            'Failed to parse JSON in SummaryCards.parseValue:',
+            err,
+          );
         }
       }
     }
@@ -89,11 +98,15 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
               <strong className="text-lg">
                 {main}
                 {percent ? (
-                  <sub className="ml-1 text-xs text-gray-500 align-sub">{percent}</sub>
+                  <sub className="ml-1 text-xs text-gray-500 align-sub">
+                    {percent}
+                  </sub>
                 ) : null}
               </strong>
-              <span className={trend === "up" ? "text-green-500" : "text-red-500"}>
-                {trend === "up" ? "↑" : "↓"}
+              <span
+                className={trend === 'up' ? 'text-green-500' : 'text-red-500'}
+              >
+                {trend === 'up' ? '↑' : '↓'}
               </span>
             </div>
           </div>

@@ -7,22 +7,16 @@ import {
   SelectItem,
   DatePicker,
   DatePickerInput,
-  Button,
   Tag,
 } from '@carbon/react';
-import {
-  transactionHeaders,
-  transactionFilterOptions,
-  transactionCustomFilter,
-  type TransactionItem,
-} from '../types/transaction';
+import { transactionHeaders, type TransactionItem } from '../types/transaction';
 import { useTransactions } from '../hooks/useTransactions';
 import { useUsers } from '../hooks/useUsers';
 
 const TransactionsPage = () => {
   const {
     rows,
-    loading,
+    // loading,
     error,
     page,
     setPage,
@@ -37,10 +31,14 @@ const TransactionsPage = () => {
     setBatchId,
     userId,
     setUserId,
-    startDate,
+    // startDate,
     setStartDate,
-    endDate,
+    // endDate,
     setEndDate,
+    sortBy,
+    setSortBy,
+    sortDir,
+    setSortDir,
   } = useTransactions();
 
   const { users, loading: usersLoading } = useUsers();
@@ -128,9 +126,8 @@ const TransactionsPage = () => {
         title="Transaction History"
         headers={transactionHeaders}
         data={rows}
-        loading={loading}
         filterOptions={[]}
-        customFilters={transactionCustomFilter}
+        customFilters={() => true}
         enableSearch={false}
         expandedRowContent={renderExpandedRow}
         renderCell={(row, key) => {
@@ -140,7 +137,7 @@ const TransactionsPage = () => {
           if (key === 'status') {
             return formatStatus(row.status);
           }
-          return row[key];
+          return (row as any)[key];
         }}
         controlled={{
           page,
@@ -148,6 +145,15 @@ const TransactionsPage = () => {
           totalItems,
           onPageChange: setPage,
           onPageSizeChange: setLimit,
+          sortColumn: sortBy,
+          sortDirection: sortDir.toUpperCase() as 'ASC' | 'DESC',
+          onSort: (col, dir) => {
+            const allowed = ['id', 'transactionDate'] as const;
+            if (!(allowed as readonly string[]).includes(col)) return;
+            setSortBy(col as any);
+            setSortDir(dir.toLowerCase() as 'asc' | 'desc');
+            setPage(1); // Reset to first page when sorting changes
+          },
           search: q,
           onSearchChange: setQ,
           activeFilter: transactionType,
@@ -251,6 +257,7 @@ const TransactionsPage = () => {
             </div>
           </div>
         }
+        // sortableKeys={['id', 'transactionDate']} // Removed - not supported by SortableTable
       />
     </GeneralPageLayout>
   );

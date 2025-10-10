@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   listCategories,
   createCategory,
@@ -24,8 +24,8 @@ export function useCategories() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [q, setQ] = useState('');
-  const [sortBy, setSortBy] = useState<'name'>('name');
-  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('ASC');
+  const [sortBy, setSortBy] = useState<'name' | 'id'>('id');
+  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');
   const [totalItems, setTotalItems] = useState(0);
 
   const fetchCategories = useCallback(async () => {

@@ -1,5 +1,5 @@
 import { PieChart } from '@carbon/charts-react';
-import { inventoryByCategory } from '../../../data/donutData';
+// Remove fallback mock; show empty chart when no data
 import type { InventoryDistribution } from '../../../api/dashboard';
 import ChartErrorBoundary from '../../../components/ChartErrorBoundary';
 
@@ -10,11 +10,8 @@ interface InventoryByCategoryProps {
 const InventoryByCategory = ({ data }: InventoryByCategoryProps) => {
   // Transform backend data to chart format
   const chartData = data
-    ? data.map((item) => ({
-        group: item.category,
-        value: item.percentage,
-      }))
-    : inventoryByCategory.data;
+    ? data.map((item) => ({ group: item.category, value: item.percentage }))
+    : [];
 
   // Create dynamic color scale based on the data
   const colorScale: Record<string, string> = {};

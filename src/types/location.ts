@@ -3,7 +3,7 @@ export type LocationDto = {
   locationId: number; // backend: location_id
   name: string;
   description?: string | null;
-  maxCapacity?: number | null; // backend: max_capacity
+  maxCapacity?: string | null; // backend: max_capacity
   currentQty: number; // backend: current_qty
   locationType: string; // backend: location_type
 };
@@ -11,7 +11,7 @@ export type LocationDto = {
 export type CreateLocationInput = {
   name: string;
   description?: string | null;
-  max_capacity?: number | null;
+  max_capacity?: string | null;
   current_qty: number; // initial quantity (consider 0 default)
   location_type: string;
 };
@@ -19,7 +19,7 @@ export type CreateLocationInput = {
 export type UpdateLocationInput = {
   name: string;
   description?: string | null;
-  max_capacity?: number | null;
+  max_capacity?: string | null;
   current_qty: number;
   location_type: string;
 };
@@ -32,8 +32,8 @@ export type LocationWithUtilDto = {
 export type ListLocationsQuery = {
   q?: string;
   location_type?: string;
-  status?: "full" | "near_full" | "low" | "exact_100" | "gt_75" | "lt_25";
-  sort_by?: "name" | "current_qty" | "max_qty";
+  status?: 'full' | 'near_full' | 'low' | 'exact_100' | 'gt_75' | 'lt_25';
+  sort_by?: 'name' | 'current_qty' | 'max_qty';
   descending?: boolean;
   limit?: number;
   offset?: number;

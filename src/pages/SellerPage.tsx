@@ -1,7 +1,6 @@
 import React from 'react';
 import DashboardLayout from './dashboard/layouts/DashboardLayout';
 import { PendingSalesStack } from './seller/components/PendingSalesStack';
-import { SalesTransactionTable } from './seller/components/SalesTransactionTable';
 
 const SellerPage: React.FC = () => {
   return (

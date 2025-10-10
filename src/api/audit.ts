@@ -12,7 +12,8 @@ export const listAuditLogs = async (query: ListAuditLogsQuery = {}) => {
   if ((query as any).user_id) params.userId = (query as any).user_id;
   if ((query as any).startDate) params.startDate = (query as any).startDate;
   if ((query as any).endDate) params.endDate = (query as any).endDate;
-  // Backend defaults sort; no client sort for now
+  if ((query as any).sortBy) params.sortBy = (query as any).sortBy;
+  if ((query as any).sortDir) params.sortDir = (query as any).sortDir;
   return httpClient.get<{ data: AuditLogDto[]; meta: any }>(
     '/audit-logs',
     params,

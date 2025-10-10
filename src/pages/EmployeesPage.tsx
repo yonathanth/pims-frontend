@@ -16,14 +16,7 @@ import { useEmployees } from '../hooks/useEmployees';
 import { createUser, updateUser, deleteUser } from '../api/users';
 import type { CreateUserInput, UpdateUserInput } from '../types/user';
 
-type RoleEnum =
-  | 'ADMIN'
-  | 'MANAGER'
-  | 'PHARMACIST'
-  | 'TECHNICIAN'
-  | 'USER'
-  | 'SELLER'
-  | '';
+type RoleEnum = 'ADMIN' | 'MANAGER' | 'PHARMACIST' | 'SELLER' | '';
 
 const EmployeesPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -42,20 +35,23 @@ const EmployeesPage = () => {
   const [username, setUsername] = useState('');
   const [selectedRole, setSelectedRole] = useState<RoleEnum>('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
 
-  const { employees, loading, error, refetch } = useEmployees();
+  const {
+    employees,
+    loading,
+    error,
+    refetch,
+    sortBy,
+    setSortBy,
+    sortDir,
+    setSortDir,
+  } = useEmployees();
   const [formError, setFormError] = useState<string | null>(null);
 
   // Static roles list - no need to fetch from backend since they don't change
-  const staticRoles = [
-    'ADMIN',
-    'MANAGER',
-    'PHARMACIST',
-    'TECHNICIAN',
-    'USER',
-    'SELLER',
-  ];
+  const staticRoles = ['ADMIN', 'MANAGER', 'PHARMACIST', 'SELLER'];
 
   // Static filter options for roles
   const filterOptions = useMemo(() => {
@@ -81,6 +77,7 @@ const EmployeesPage = () => {
     setUsername('');
     setSelectedRole('');
     setEmail('');
+    setPhoneNumber('');
     setPassword('');
   };
 
@@ -118,7 +115,8 @@ const EmployeesPage = () => {
         username,
         password: finalPassword,
         full_name: name,
-        email,
+        email: email.trim() || undefined,
+        phone_number: phoneNumber.trim() || undefined,
         role: selectedRole as any,
       } as unknown as CreateUserInput;
 
@@ -141,7 +139,8 @@ const EmployeesPage = () => {
       const payload: UpdateUserInput = {
         username: editEmployee.username,
         full_name: editEmployee.name,
-        email: editEmployee.email,
+        email: editEmployee.email || undefined,
+        phone_number: editEmployee.phoneNumber || undefined,
         role: (editEmployee.role as any) || undefined,
       } as unknown as UpdateUserInput;
       (payload as any).password = editPassword || '';
@@ -216,6 +215,23 @@ const EmployeesPage = () => {
             ? renderActionsMenu(row)
             : row[key as keyof EmployeeItem]
         }
+        controlled={{
+          sortColumn: sortBy,
+          sortDirection: sortDir.toUpperCase() as 'ASC' | 'DESC',
+          onSort: (col, dir) => {
+            const allowed = [
+              'id',
+              'name',
+              'username',
+              'role',
+              'email',
+              'phoneNumber',
+            ] as const;
+            if (!(allowed as readonly string[]).includes(col)) return;
+            setSortBy(col as any);
+            setSortDir(dir.toLowerCase() as 'asc' | 'desc');
+          },
+        }}
       />
 
       {(error || formError) && !showAddModal && !showEditModal && (
@@ -276,10 +292,22 @@ const EmployeesPage = () => {
             type: 'text',
             value: email,
             onChange: (v) => setEmail(v as string),
-            placeholder: 'Enter email address',
-            required: true,
-            validate: (v) =>
-              /.+@.+/.test(String(v)) ? undefined : 'Invalid email',
+            placeholder: 'Enter email address (optional)',
+            required: false,
+            validate: (v) => {
+              const val = String(v).trim();
+              if (val && !/.+@.+/.test(val)) return 'Invalid email';
+              return undefined;
+            },
+          },
+          {
+            key: 'phoneNumber',
+            label: 'Phone Number',
+            type: 'text',
+            value: phoneNumber,
+            onChange: (v) => setPhoneNumber(v as string),
+            placeholder: 'Enter phone number (optional)',
+            required: false,
           },
           {
             key: 'password',
@@ -352,13 +380,29 @@ const EmployeesPage = () => {
                   key: 'email',
                   label: 'Email',
                   type: 'text',
-                  value: editEmployee.email,
+                  value: editEmployee.email || '',
                   onChange: (v) =>
                     setEditEmployee({ ...editEmployee, email: v as string }),
-                  placeholder: 'Enter email address',
-                  required: true,
-                  validate: (v) =>
-                    /.+@.+/.test(String(v)) ? undefined : 'Invalid email',
+                  placeholder: 'Enter email address (optional)',
+                  required: false,
+                  validate: (v) => {
+                    const val = String(v).trim();
+                    if (val && !/.+@.+/.test(val)) return 'Invalid email';
+                    return undefined;
+                  },
+                },
+                {
+                  key: 'phoneNumber',
+                  label: 'Phone Number',
+                  type: 'text',
+                  value: editEmployee.phoneNumber || '',
+                  onChange: (v) =>
+                    setEditEmployee({
+                      ...editEmployee,
+                      phoneNumber: v as string,
+                    }),
+                  placeholder: 'Enter phone number (optional)',
+                  required: false,
                 },
               ]
             : []

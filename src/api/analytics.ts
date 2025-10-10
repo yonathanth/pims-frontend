@@ -1,4 +1,4 @@
-import { httpClient } from "./tauriClient";
+import { httpClient } from './tauriClient';
 
 export interface KeyMetricDto {
   label: string;
@@ -39,7 +39,7 @@ export interface TopPerformerDto {
 // Product shape returned in multiple lists
 export interface ProductDto {
   generic_name: string;
-  brand_name?: string;
+  trade_name?: string;
   sku?: string;
   batch_number?: string;
   expiry_date?: string; // ISO date part YYYY-MM-DD
@@ -71,8 +71,8 @@ export interface AnalyticsQuery {
   // Align to backend DTO (ValidationPipe transform applies)
   timeFilter?: 'daily' | 'monthly' | 'yearly' | 'custom' | 'date';
   startIso?: string; // when timeFilter=custom
-  endIso?: string;   // optional for custom
-  dateIso?: string;  // when timeFilter=date
+  endIso?: string; // optional for custom
+  dateIso?: string; // when timeFilter=date
   rangeDays?: number; // reserved
   lowStockThreshold?: number; // if omitted, backend uses General Configs
   topPerformersSort?: 'volume' | 'name';
@@ -131,7 +131,7 @@ function mapTopPerformer(p: any): TopPerformerDto {
 function mapProduct(p: any): ProductDto {
   return {
     generic_name: p.genericName ?? p.generic_name,
-    brand_name: p.brandName ?? p.brand_name,
+    trade_name: p.tradeName ?? p.trade_name,
     sku: p.sku,
     batch_number: p.batchNumber ?? p.batch_number,
     expiry_date: p.expiryDate ?? p.expiry_date,
@@ -146,9 +146,7 @@ function mapProduct(p: any): ProductDto {
 
 function mapAnalyticsResponse(raw: any): AnalyticsResponseDto {
   return {
-    metrics: Array.isArray(raw?.metrics)
-      ? raw.metrics.map(mapKeyMetric)
-      : [],
+    metrics: Array.isArray(raw?.metrics) ? raw.metrics.map(mapKeyMetric) : [],
     inventory_cards: Array.isArray(raw?.inventoryCards)
       ? raw.inventoryCards.map(mapKeyMetric)
       : [],
@@ -191,15 +189,24 @@ function mapAnalyticsResponse(raw: any): AnalyticsResponseDto {
 }
 
 export const getAnalytics = async (query: AnalyticsQuery = {}) => {
-  const raw = await httpClient.get<any>("/analytics", query as any);
+  const raw = await httpClient.get<any>('/analytics', query as any);
   return mapAnalyticsResponse(raw);
 };
 
 export const getDistributionByCategory = (query: AnalyticsQuery = {}) =>
-  httpClient.get<CategorySliceDto[]>("/analytics/distribution-by-category", query as any);
+  httpClient.get<CategorySliceDto[]>(
+    '/analytics/distribution-by-category',
+    query as any,
+  );
 
 export const getMonthlyStockedVsSold = (query: AnalyticsQuery = {}) =>
-  httpClient.get<MonthlySeriesPointDto[]>("/analytics/monthly-stocked-vs-sold", query as any);
+  httpClient.get<MonthlySeriesPointDto[]>(
+    '/analytics/monthly-stocked-vs-sold',
+    query as any,
+  );
 
 export const getMetricsSummary = (query: AnalyticsQuery = {}) =>
-  httpClient.get<[KeyMetricDto[], KeyMetricDto[]]>("/analytics/metrics-summary", query as any);
+  httpClient.get<[KeyMetricDto[], KeyMetricDto[]]>(
+    '/analytics/metrics-summary',
+    query as any,
+  );

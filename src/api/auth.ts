@@ -1,4 +1,4 @@
-import { call, httpClient } from './tauriClient';
+import { httpClient } from './tauriClient';
 
 // Auth types
 export type Session = {
@@ -44,6 +44,7 @@ export const authStatus = async () => {
   const status = await httpClient.get<{
     initialized: boolean;
     hasUsers: boolean;
+    hasAdminUsers: boolean;
     hasConfigs: boolean;
     hasCategories: boolean;
     hasSuppliers: boolean;
@@ -54,6 +55,7 @@ export const authStatus = async () => {
   // Maintain backward compatibility
   return {
     hasUser: status.hasUsers,
+    hasAdminUser: status.hasAdminUsers,
     ...status,
   };
 };

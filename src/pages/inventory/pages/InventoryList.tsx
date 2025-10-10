@@ -35,9 +35,9 @@ import { createTransaction } from '../../../api/inventory';
 
 // Define inventory headers for the table
 const inventoryHeaders = [
+  { key: 'batchNumber', header: 'Batch Number' },
   { key: 'drugName', header: 'Drug Name' },
   { key: 'sku', header: 'SKU' },
-  { key: 'batchNumber', header: 'Batch Number' },
   { key: 'expiryDate', header: 'Expiry Date' },
   { key: 'quantity', header: 'Quantity' },
   { key: 'unitPrice', header: 'Unit Price' },
@@ -161,7 +161,9 @@ const InventoryList = () => {
 
   const handleAddBatch = async () => {
     try {
-      const drugItem = products.find((p) => p.name === selectedDrug);
+      const drugItem = products.find(
+        (p) => String(p.id) === String(selectedDrug),
+      );
       const supplierItem = suppliers.find((s) => s.name === selectedSupplier);
 
       if (!drugItem || !supplierItem) {
@@ -206,7 +208,9 @@ const InventoryList = () => {
     if (!editBatch) return;
 
     try {
-      const drugItem = products.find((p) => p.name === editBatch.drugName);
+      const drugItem = products.find(
+        (p) => String(p.id) === String(editBatch.drugId),
+      );
       const supplierItem = suppliers.find((s) => s.name === editBatch.supplier);
 
       if (!drugItem || !supplierItem) {
@@ -498,7 +502,7 @@ const InventoryList = () => {
               Unit Cost
             </div>
             <div className="text-2xl font-bold">
-              ${rowData.unitCost || rowData.unitPrice}
+              ETB {rowData.unitCost || rowData.unitPrice}
             </div>
           </div>
 
@@ -648,7 +652,11 @@ const InventoryList = () => {
     </OverflowMenu>
   );
 
-  const drugOptions = products.map((p) => ({ text: p.name, value: p.name }));
+  // Prefer tradeName for display; fallback to generic name. Use id as value.
+  const drugOptions = products.map((p) => ({
+    text: p.tradeName ? `${p.tradeName} (${p.name})` : p.name,
+    value: String(p.id),
+  }));
   const supplierOptions = suppliers.map((s) => ({
     text: s.name,
     value: s.name,
@@ -775,7 +783,7 @@ const InventoryList = () => {
       label: 'Batch Information',
       type: 'text',
       value: selectedBatchForTransaction
-        ? `${selectedBatchForTransaction.drugName} - ${selectedBatchForTransaction.batchNumber} (Available: ${selectedBatchForTransaction.quantity})`
+        ? `${selectedBatchForTransaction.drugName} - Batch #${selectedBatchForTransaction.batchNumber} (Available: ${selectedBatchForTransaction.quantity})`
         : '',
       onChange: () => {}, // Read-only
       required: false,
@@ -899,10 +907,9 @@ const InventoryList = () => {
                     itemToString={(item) => (item ? item.text : '')}
                     initialSelectedItem={{ text: 'All Drugs', value: '' }}
                     onChange={({ selectedItem }) => {
-                      const drugName = selectedItem?.value || '';
-                      if (drugName) {
-                        const drug = products.find((p) => p.name === drugName);
-                        setDrugId(drug ? Number(drug.id) : undefined);
+                      const selectedDrugId = selectedItem?.value || '';
+                      if (selectedDrugId) {
+                        setDrugId(Number(selectedDrugId));
                       } else {
                         setDrugId(undefined);
                       }
@@ -956,22 +963,27 @@ const InventoryList = () => {
               'drugName',
               'sku',
               'lowStockThreshold',
+              'batchNumber',
             ] as const;
             const mapped =
               col === 'quantity'
                 ? 'currentQty'
                 : col === 'reorderLevel'
                   ? 'lowStockThreshold'
-                  : col;
+                  : col === 'batchNumber'
+                    ? 'batchNumber'
+                    : col;
             if (!(allowed as readonly string[]).includes(mapped as any)) return;
             setSortBy(mapped as any);
             setSortDir(dir.toLowerCase() as 'asc' | 'desc');
+            setPage(1); // Reset to first page when sorting changes
           },
           search: q,
           onSearchChange: (value) => setQ(value),
           activeFilter: 'All',
           onFilterChange: () => {},
           sortableKeys: [
+            'batchNumber',
             'drugName',
             'sku',
             'expiryDate',
@@ -1172,6 +1184,15 @@ const InventoryList = () => {
       >
         <ModalHeader label="" title="Delete Batch" />
         <ModalBody>
+          {showError && (
+            <InlineNotification
+              kind="error"
+              title="Delete failed"
+              subtitle={showError}
+              onCloseButtonClick={() => setShowError(null)}
+              className="mb-4"
+            />
+          )}
           Are you sure you want to delete batch{' '}
           <b>{deleteBatch?.batchNumber}</b> for <b>{deleteBatch?.drugName}</b>?
         </ModalBody>

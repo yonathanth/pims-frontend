@@ -21,7 +21,7 @@ export const LocationSelector = ({
   placeholder = 'Search and select locations...',
   disabled = false,
 }: LocationSelectorProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [, setSearchTerm] = useState('');
   const [locationOptions, setLocationOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 

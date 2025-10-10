@@ -16,12 +16,7 @@ import {
   ModalBody,
   ModalFooter,
 } from '@carbon/react';
-import {
-  supplierHeaders,
-  supplierFilterOptions,
-  supplierCustomFilter,
-  type SupplierItem,
-} from '../data/supplierData';
+import { supplierHeaders, type SupplierItem } from '../data/supplierData';
 import { useSuppliers } from '../hooks/useSuppliers';
 import {
   createSupplier,
@@ -201,16 +196,18 @@ const SuppliersPage = () => {
                 'contactName',
                 'phone',
                 'email',
+                'id',
               ] as const;
               if (!(allowed as readonly string[]).includes(col)) return;
               setSortBy(col as any);
               setSortDir(dir);
+              setPage(1); // Reset to first page when sorting changes
             },
             search: q,
             onSearchChange: (value) => setQ(value),
             activeFilter: 'All',
             onFilterChange: () => {},
-            sortableKeys: ['name', 'contactName', 'phone', 'email'],
+            sortableKeys: ['id', 'name', 'contactName', 'phone', 'email'],
           }}
           renderCell={(row, key) =>
             key === 'actions' ? renderActionsMenu(row) : row[key]

@@ -19,9 +19,9 @@ export function useCategoriesSearch() {
       const res = await listCategories({
         q: searchTerm,
         limit: 100, // High limit to get all matching categories
-        page: 1,
-        sortBy: 'name',
-        sortDir: 'asc',
+        // page: 1,
+        sort_by: 'name',
+        // sort_dir: 'asc',
       });
 
       const options: CategoryOption[] = res.data.map((c) => ({

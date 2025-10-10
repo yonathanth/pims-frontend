@@ -16,6 +16,7 @@ export const createUser = (input: CreateUserInput) =>
     password: input.password,
     fullName: input.full_name,
     email: input.email,
+    phoneNumber: input.phone_number,
     role: input.role?.toUpperCase?.() ?? input.role,
   });
 
@@ -25,6 +26,7 @@ export const updateUser = (id: number, input: UpdateUserInput) =>
     password: (input as any).password,
     fullName: (input as any).full_name,
     email: (input as any).email,
+    phoneNumber: (input as any).phone_number,
     role: (input as any).role?.toUpperCase?.() ?? (input as any).role,
   });
 

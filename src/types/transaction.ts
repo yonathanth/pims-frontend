@@ -1,6 +1,5 @@
 export interface TransactionItem {
   id: string;
-  transactionId: string;
   batchId: number;
   transactionType: string;
   quantity: number;
@@ -33,7 +32,7 @@ export interface ListTransactionsQuery {
 }
 
 export const transactionHeaders = [
-  { key: 'transactionId', header: 'Transaction ID' },
+  { key: 'id', header: 'ID' },
   { key: 'batchId', header: 'Batch ID' },
   { key: 'transactionType', header: 'Type' },
   { key: 'drugName', header: 'Drug Name' },

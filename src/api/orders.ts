@@ -80,9 +80,9 @@ function mapUpdateItemPayload(input: UpdatePurchaseOrderItemInput) {
 
 function toProductName(drug: any, drugId?: number) {
   return (
-    drug?.brandName ||
+    drug?.tradeName ||
     drug?.genericName ||
-    drug?.brand_name ||
+    drug?.trade_name ||
     drug?.generic_name ||
     (drugId != null ? `Drug ID: ${drugId}` : 'Unknown Product')
   );
@@ -221,4 +221,64 @@ export const updatePurchaseOrderItem = async (
 
 export const deletePurchaseOrderItem = (id: number) => {
   return httpClient.delete<number>(`/purchase-orders/items/${id}`);
+};
+
+export interface CreatePurchaseOrderWithItemsInput {
+  supplier_id: number;
+  created_at?: string;
+  expected_date?: string;
+  status?: string;
+  items: Array<{
+    drug_id: number;
+    quantity_ordered: number;
+    quantity_received?: number;
+    unit_cost: number;
+    status?: string;
+  }>;
+}
+
+export const createPurchaseOrderWithItems = async (
+  input: CreatePurchaseOrderWithItemsInput,
+) => {
+  const payload = {
+    supplierId: input.supplier_id,
+    createdDate: input.created_at ?? undefined,
+    expectedDate: input.expected_date ?? undefined,
+    status: normalizeStatus(input.status) ?? 'Pending',
+    items: input.items.map((item) => ({
+      drugId: item.drug_id,
+      quantityOrdered: item.quantity_ordered,
+      quantityReceived: item.quantity_received ?? 0,
+      unitCost: item.unit_cost,
+      status: normalizeStatus(item.status) ?? 'Pending',
+    })),
+  };
+
+  const res = await httpClient.post<any>(
+    '/purchase-orders/with-items',
+    payload,
+  );
+
+  // Map the response to match the expected format
+  const mapped = {
+    purchase_order_id: res.id,
+    supplier_id: res.supplierId,
+    created_at: res.createdDate,
+    expected_date: res.expectedDate,
+    status: res.status,
+    items:
+      res.items?.map((item: any) => ({
+        purchase_order_item_id: item.id,
+        purchase_order_id: item.purchaseOrderId,
+        drug_id: item.drugId,
+        batch_id: item.batchId ?? null,
+        quantity_ordered: item.quantityOrdered,
+        quantity_received: item.quantityReceived ?? 0,
+        unit_cost: item.unitCost ?? 0,
+        status: item.status,
+        product_name: toProductName(item.drug, item.drugId),
+      })) ?? [],
+  };
+
+  return mapped;
 };

@@ -3,18 +3,10 @@ import SortableTable from '../components/SortableTable';
 import {
   InlineNotification,
   TextInput,
-  Select,
-  SelectItem,
   DatePicker,
   DatePickerInput,
 } from '@carbon/react';
-import { useEffect } from 'react';
-import {
-  auditLogHeaders,
-  auditLogFilterOptions,
-  auditLogCustomFilter,
-  type AuditLogItem,
-} from '../data/auditLogData';
+import { auditLogHeaders, type AuditLogItem } from '../data/auditLogData';
 import { useAuditLogs } from '../hooks/useAuditLogs';
 
 const AuditLogPage = () => {
@@ -26,21 +18,25 @@ const AuditLogPage = () => {
     setPage,
     limit,
     setLimit,
-    q,
-    setQ,
+    // q,
+    // setQ,
     totalItems,
     entityName,
     setEntityName,
-    action,
-    setAction,
+    // action,
+    // setAction,
     userId,
     setUserId,
     entityId,
     setEntityId,
-    startDate,
+    // startDate,
     setStartDate,
-    endDate,
+    // endDate,
     setEndDate,
+    sortBy,
+    setSortBy,
+    sortDir,
+    setSortDir,
   } = useAuditLogs();
 
   // Expanded row content for audit log details
@@ -172,14 +168,20 @@ const AuditLogPage = () => {
             totalItems,
             onPageChange: (p) => setPage(p),
             onPageSizeChange: (s) => setLimit(s),
-            sortColumn: undefined,
-            sortDirection: 'ASC',
-            onSort: () => {},
+            sortColumn: sortBy,
+            sortDirection: sortDir.toUpperCase() as 'ASC' | 'DESC',
+            onSort: (col, dir) => {
+              const allowed = ['id', 'timestamp'] as const;
+              if (!(allowed as readonly string[]).includes(col)) return;
+              setSortBy(col as any);
+              setSortDir(dir.toLowerCase() as 'asc' | 'desc');
+              setPage(1); // Reset to first page when sorting changes
+            },
             search: '',
             onSearchChange: () => {},
             activeFilter: '',
             onFilterChange: () => {},
-            sortableKeys: [],
+            sortableKeys: ['id', 'timestamp'],
           }}
         />
         {loading && (

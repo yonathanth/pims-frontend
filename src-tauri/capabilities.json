@@ -1,0 +1,16 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for PIMS app",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:default",
+    "http:default",
+    "fs:default",
+    "path:default",
+    "dialog:default",
+    "notification:default",
+    "window:default",
+    "clipboard:default"
+  ]
+}

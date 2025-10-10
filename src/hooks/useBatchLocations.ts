@@ -13,7 +13,9 @@ export function useBatchLocations() {
       const result = await getLocationsByBatch(batchId);
 
       // The /locations/batch/:batchId endpoint returns raw Location[] array
-      const locations = Array.isArray(result) ? result : result.data || [];
+      const locations = Array.isArray(result)
+        ? result
+        : (result as any).data || [];
 
       setLocations(locations);
       return locations;

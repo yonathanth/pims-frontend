@@ -10,9 +10,9 @@ export function useSuppliers() {
   const [limit, setLimit] = useState(10);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState<
-    'name' | 'contactName' | 'phone' | 'email'
-  >('name');
-  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('ASC');
+    'name' | 'contactName' | 'phone' | 'email' | 'id'
+  >('id');
+  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');
   const [totalItems, setTotalItems] = useState(0);
 
   const fetchSuppliers = useCallback(async () => {

@@ -30,14 +30,13 @@ const ProductsPage = () => {
   // Form state
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
-  const [brand, setBrand] = useState('');
+  const [tradeName, setTradeName] = useState('');
   const [category, setCategory] = useState('');
   const [strength, setStrength] = useState('');
   const [description, setDescription] = useState('');
 
   // Category filter state
-  const [selectedCategoryFilter, setSelectedCategoryFilter] =
-    useState<string>('');
+  const [, setSelectedCategoryFilter] = useState<string>('');
 
   const {
     products,
@@ -54,7 +53,7 @@ const ProductsPage = () => {
     setSortBy,
     sortDir,
     setSortDir,
-    categoryId,
+    // categoryId,
     setCategoryId,
     totalItems,
   } = useProducts();
@@ -80,7 +79,7 @@ const ProductsPage = () => {
   const resetForm = () => {
     setName('');
     setSku('');
-    setBrand('');
+    setTradeName('');
     setCategory('');
     setStrength('');
     setDescription('');
@@ -112,9 +111,9 @@ const ProductsPage = () => {
     try {
       const selectedCategory = categoryRows.find((c) => c.name === category);
       await createDrug({
-        sku,
+        sku: sku.trim() || undefined, // Pass undefined if empty string
         generic_name: name,
-        brand_name: brand,
+        trade_name: tradeName,
         strength,
         description,
         category_id: selectedCategory ? Number(selectedCategory.id) : 1,
@@ -137,9 +136,9 @@ const ProductsPage = () => {
         (c) => c.name === editProduct.category,
       );
       await updateDrug(Number(editProduct.id), {
-        sku: editProduct.sku,
+        sku: editProduct.sku || undefined, // Pass undefined if empty string
         generic_name: editProduct.name,
-        brand_name: editProduct.brand,
+        trade_name: editProduct.tradeName,
         strength: editProduct.strength,
         description: editProduct.description || '',
         category_id: selectedCategory ? Number(selectedCategory.id) : 1,
@@ -193,7 +192,8 @@ const ProductsPage = () => {
                 <span className="font-medium">Name:</span> {rowData.name}
               </p>
               <p>
-                <span className="font-medium">Brand:</span> {rowData.brand}
+                <span className="font-medium">Trade Name:</span>{' '}
+                {rowData.tradeName}
               </p>
             </div>
             <div>
@@ -230,7 +230,7 @@ const ProductsPage = () => {
         data={resolvedProducts}
         filterOptions={[]}
         searchField="name"
-        searchPlaceholder="Search (Name, SKU, Brand, Category)"
+        searchPlaceholder="Search (Generic Name, SKU, Trade Name, Category)"
         expandedRowContent={renderExpandedRow}
         controlled={{
           page,
@@ -241,21 +241,26 @@ const ProductsPage = () => {
           sortColumn: sortBy,
           sortDirection: sortDir,
           onSort: (col, dir) => {
-            const map: Record<string, 'sku' | 'genericName' | 'brandName'> = {
+            const map: Record<
+              string,
+              'sku' | 'genericName' | 'tradeName' | 'id'
+            > = {
               name: 'genericName',
               sku: 'sku',
-              brand: 'brandName',
+              tradeName: 'tradeName',
+              id: 'id',
             };
             const mapped = map[col];
             if (!mapped) return;
             setSortBy(mapped);
             setSortDir(dir);
+            setPage(1); // Reset to first page when sorting changes
           },
           search: q,
           onSearchChange: (value) => setQ(value),
           activeFilter: '',
           onFilterChange: () => {},
-          sortableKeys: ['name', 'sku', 'brand'],
+          sortableKeys: ['id', 'name', 'sku', 'tradeName'],
         }}
         searchActions={
           <div className="flex items-center gap-3">
@@ -346,7 +351,7 @@ const ProductsPage = () => {
         fields={[
           {
             key: 'name',
-            label: 'Product Name',
+            label: 'Generic Name',
             type: 'text',
             value: name,
             onChange: (v) => setName(v as string),
@@ -359,16 +364,16 @@ const ProductsPage = () => {
             type: 'text',
             value: sku,
             onChange: (v) => setSku(v as string),
-            placeholder: 'Enter SKU',
-            required: true,
+            placeholder: 'Leave empty for auto-generated SKU',
+            required: false,
           },
           {
-            key: 'brand',
-            label: 'Brand',
+            key: 'tradeName',
+            label: 'Trade Name',
             type: 'text',
-            value: brand,
-            onChange: (v) => setBrand(v as string),
-            placeholder: 'Enter brand name',
+            value: tradeName,
+            onChange: (v) => setTradeName(v as string),
+            placeholder: 'Enter trade name',
           },
           {
             key: 'category',
@@ -419,7 +424,7 @@ const ProductsPage = () => {
             ? [
                 {
                   key: 'name',
-                  label: 'Product Name',
+                  label: 'Generic Name',
                   type: 'text',
                   value: editProduct.name,
                   onChange: (value) =>
@@ -438,13 +443,16 @@ const ProductsPage = () => {
                   required: true,
                 },
                 {
-                  key: 'brand',
-                  label: 'Brand',
+                  key: 'tradeName',
+                  label: 'Trade Name',
                   type: 'text',
-                  value: editProduct.brand,
+                  value: editProduct.tradeName,
                   onChange: (value) =>
-                    setEditProduct({ ...editProduct, brand: value as string }),
-                  placeholder: 'Enter brand name',
+                    setEditProduct({
+                      ...editProduct,
+                      tradeName: value as string,
+                    }),
+                  placeholder: 'Enter trade name',
                 },
                 {
                   key: 'category',

@@ -172,20 +172,19 @@ const GenericModal = ({
                   <MultiSelect
                     id={field.key}
                     items={field.options || []}
-                    itemToString={(item) => (item ? item.text : '')}
+                    itemToString={(item: any) => (item ? item.text : '')}
                     initialSelectedItems={
                       field.options?.filter((opt) =>
                         (field.value as string[])?.includes(opt.value),
                       ) || []
                     }
                     onChange={({ selectedItems }) => {
-                      const selectedValues = selectedItems.map(
-                        (item) => item.value,
-                      );
+                      const selectedValues =
+                        selectedItems?.map((item: any) => item.value) || [];
                       field.onChange(selectedValues);
                     }}
                     titleText=""
-                    placeholder={field.placeholder || 'Select options...'}
+                    label=""
                     disabled={field.loading}
                   />
                 ) : isCustom ? (

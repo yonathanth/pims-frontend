@@ -16,6 +16,8 @@ export function useTransactions() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [status, setStatus] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'transactionDate' | 'id'>('id');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -30,7 +32,8 @@ export function useTransactions() {
         ...(startDate ? { startDate } : {}),
         ...(endDate ? { endDate } : {}),
         ...(status ? { status } : {}),
-        sortDir: 'desc',
+        sortBy,
+        sortDir,
       });
 
       const data = (res as any).data || [];
@@ -42,7 +45,6 @@ export function useTransactions() {
 
       const mapped: TransactionItem[] = data.map((d: any) => ({
         id: String(d.id),
-        transactionId: `TXN-${String(d.id).padStart(4, '0')}`,
         batchId: d.batchId,
         transactionType: d.transactionType,
         quantity: d.quantity,
@@ -80,6 +82,8 @@ export function useTransactions() {
     startDate,
     endDate,
     status,
+    sortBy,
+    sortDir,
   ]);
 
   useEffect(() => {
@@ -109,6 +113,10 @@ export function useTransactions() {
     setEndDate,
     status,
     setStatus,
+    sortBy,
+    setSortBy,
+    sortDir,
+    setSortDir,
     refetch: fetchTransactions,
   };
 }

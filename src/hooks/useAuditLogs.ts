@@ -16,6 +16,8 @@ export function useAuditLogs() {
   const [entityId, setEntityId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'timestamp' | 'id'>('id');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -30,6 +32,8 @@ export function useAuditLogs() {
         ...(entityId ? { entity_id: Number(entityId) } : ({} as any)),
         ...(startDate ? { startDate } : ({} as any)),
         ...(endDate ? { endDate } : ({} as any)),
+        sortBy,
+        sortDir,
       } as any);
       const data = (res as any).data || [];
       const meta = (res as any).meta || {
@@ -50,7 +54,6 @@ export function useAuditLogs() {
 
         return {
           id: String(d.id ?? d.audit_id),
-          auditId: `AUD-${String(d.id ?? d.audit_id).padStart(4, '0')}`,
           entityName: d.entityName ?? d.entity_name,
           entityId: String(d.entityId ?? d.entity_id),
           action: String(d.action).toUpperCase(),
@@ -82,6 +85,8 @@ export function useAuditLogs() {
     entityId,
     startDate,
     endDate,
+    sortBy,
+    sortDir,
   ]);
 
   useEffect(() => {
@@ -112,5 +117,9 @@ export function useAuditLogs() {
     setStartDate,
     endDate,
     setEndDate,
+    sortBy,
+    setSortBy,
+    sortDir,
+    setSortDir,
   };
 }

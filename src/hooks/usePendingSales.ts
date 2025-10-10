@@ -11,8 +11,11 @@ export function usePendingSales() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPendingSales = useCallback(async () => {
-    setLoading(true);
+  const fetchPendingSales = useCallback(async (isBackgroundRefresh = false) => {
+    // Only show loading state for manual refreshes, not background refreshes
+    if (!isBackgroundRefresh) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const sales = await getPendingSales();
@@ -22,7 +25,9 @@ export function usePendingSales() {
         err instanceof Error ? err.message : 'Failed to fetch pending sales',
       );
     } finally {
-      setLoading(false);
+      if (!isBackgroundRefresh) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -48,10 +53,12 @@ export function usePendingSales() {
     }
   }, []);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 2 seconds (background refresh)
   useEffect(() => {
-    fetchPendingSales();
-    const interval = setInterval(fetchPendingSales, 30000);
+    fetchPendingSales(); // Initial load with loading state
+    const interval = setInterval(() => {
+      fetchPendingSales(true); // Background refresh without loading state
+    }, 2000); // Reduced from 1000ms to 2000ms for smoother experience
     return () => clearInterval(interval);
   }, [fetchPendingSales]);
 
@@ -59,7 +66,7 @@ export function usePendingSales() {
     pendingSales,
     loading,
     error,
-    refreshPendingSales: fetchPendingSales,
+    refreshPendingSales: () => fetchPendingSales(false), // Manual refresh with loading state
     approveSale: handleApproveSale,
     declineSale: handleDeclineSale,
   };

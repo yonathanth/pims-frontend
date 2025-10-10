@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { listGeneralConfigs } from "../api/generalConfigs";
+import { useEffect, useState, useCallback } from 'react';
+import { listGeneralConfigs } from '../api/generalConfigs';
 
 export type GeneralConfig = {
   id: number;
@@ -18,8 +18,9 @@ export function useGeneralConfigs(category?: string) {
   const fetchConfigs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listGeneralConfigs({ category, limit: 100 });
-      const mapped = (res || []).map((c: any) => ({
+      const res: any = await listGeneralConfigs({ category, limit: 100 });
+      const rows: any[] = Array.isArray(res) ? res : (res?.data ?? []);
+      const mapped = rows.map((c: any) => ({
         id: c.configId ?? c.config_id ?? c.id,
         key: c.key,
         value: c.value,
@@ -31,7 +32,7 @@ export function useGeneralConfigs(category?: string) {
       setError(null);
     } catch (e) {
       setConfigs([]);
-      setError("Failed to load configurations");
+      setError('Failed to load configurations');
     } finally {
       setLoading(false);
     }

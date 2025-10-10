@@ -16,7 +16,7 @@ import {
   Tag,
   InlineNotification,
 } from '@carbon/react';
-import { Search, Renew } from '@carbon/icons-react';
+import { Renew } from '@carbon/icons-react';
 import { useSales } from '../../../hooks/useSales';
 import { type Sale } from '../../../api/sales';
 
@@ -61,7 +61,7 @@ export const SalesTransactionTable: React.FC = () => {
       case 'declined':
         return <Tag type="red">Declined</Tag>;
       case 'pending':
-        return <Tag type="yellow">Pending</Tag>;
+        return <Tag type="warm-gray">Pending</Tag>;
       default:
         return <Tag type="gray">{status}</Tag>;
     }
@@ -98,7 +98,10 @@ export const SalesTransactionTable: React.FC = () => {
           kind="error"
           title="Error Loading Sales"
           subtitle={error}
-          onClose={() => refreshSales()}
+          onClose={() => {
+            refreshSales();
+            return true;
+          }}
         />
       </div>
     );
@@ -115,7 +118,6 @@ export const SalesTransactionTable: React.FC = () => {
             placeholder="Search by drug name or customer..."
             value={searchValue}
             onChange={(e) => handleSearch(e.target.value)}
-            renderIcon={Search}
           />
         </div>
         <div className="w-full sm:w-48">
@@ -154,17 +156,19 @@ export const SalesTransactionTable: React.FC = () => {
 
       {/* Table Container with Scroll */}
       <div className="flex-1 overflow-auto">
-        <DataTable rows={rows} headers={headers} isSortable useZebraStyles>
+        <DataTable
+          rows={rows.map((row) => ({ ...row, id: String(row.id) }))}
+          headers={headers}
+          isSortable
+          useZebraStyles
+        >
           {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
             <TableContainer>
               <Table {...getTableProps()}>
                 <TableHead>
                   <TableRow>
                     {headers.map((header) => (
-                      <TableHeader
-                        key={header.key}
-                        {...getHeaderProps({ header })}
-                      >
+                      <TableHeader {...getHeaderProps({ header })}>
                         {header.header}
                       </TableHeader>
                     ))}
@@ -194,7 +198,7 @@ export const SalesTransactionTable: React.FC = () => {
                     </TableRow>
                   ) : (
                     rows.map((row) => (
-                      <TableRow key={row.id} {...getRowProps({ row })}>
+                      <TableRow {...getRowProps({ row })}>
                         {row.cells.map((cell) => (
                           <TableCell key={cell.id}>{cell.value}</TableCell>
                         ))}
@@ -216,7 +220,7 @@ export const SalesTransactionTable: React.FC = () => {
             pageSize={salesData.pagination.limit}
             totalItems={salesData.pagination.total}
             pageSizes={[10, 20, 50]}
-            onChange={({ page, pageSize }) => {
+            onChange={({ page }) => {
               goToPage(page);
             }}
           />

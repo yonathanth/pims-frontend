@@ -2,9 +2,6 @@ import { httpClient } from './tauriClient';
 import type {
   CreateLocationInput,
   UpdateLocationInput,
-  ListLocationsQuery,
-  LocationWithUtilDto,
-  LocationDto,
   LocationBatchViewDto,
   LocationsSummaryDto,
 } from '../types/location';

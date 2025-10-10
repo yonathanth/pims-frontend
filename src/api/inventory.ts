@@ -1,11 +1,7 @@
 import { httpClient } from './tauriClient';
 import type {
-  BatchDto,
   CreateBatchInput,
   UpdateBatchInput,
-  BatchViewDto,
-  ListBatchesQuery,
-  TransactionDto,
   CreateTransactionInput,
   ListTransactionsQuery,
 } from '../types/inventory';
@@ -87,6 +83,7 @@ export const listAllTransactions = (query: any = {}) => {
   const params: Record<string, any> = {};
   if (query.page) params.page = query.page;
   if (query.limit) params.limit = query.limit;
+  if (query.sortBy) params.sortBy = query.sortBy;
   if (query.sortDir) params.sortDir = query.sortDir;
   if (query.type) params.type = query.type;
   if (query.batchId) params.batchId = query.batchId;

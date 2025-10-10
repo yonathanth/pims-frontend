@@ -1,8 +1,11 @@
 import { Dropdown } from '@carbon/react';
-import { topSuppliersHeaders, mostOrderedProductsHeaders } from '../../../data/tabTableData';
+import {
+  topSuppliersHeaders,
+  mostOrderedProductsHeaders,
+} from '../../../data/tabTableData';
 import { SortableTable } from '../../../components/SortableTable';
 import SummaryCards from './SummaryCards';
-import { supplierSummaryData } from '../../../data/summaryData';
+// Remove fallback mock summary; show empty when backend has none
 import type { AnalyticsResponseDto, ProductDto } from '../../../api/analytics';
 import { useMemo } from 'react';
 
@@ -11,7 +14,11 @@ interface SupplyAnalyticsProps {
   sortBy: 'volume' | 'value' | 'frequency';
   onChangeSort: (v: 'volume' | 'value' | 'frequency') => void;
 }
-const SupplyAnalytics: React.FC<SupplyAnalyticsProps> = ({ analytics, sortBy, onChangeSort }) => {
+const SupplyAnalytics: React.FC<SupplyAnalyticsProps> = ({
+  analytics,
+  sortBy,
+  onChangeSort,
+}) => {
   const summary =
     analytics?.metrics && analytics.metrics.length > 0
       ? analytics.metrics.slice(0, 5).map((m) => ({
@@ -22,7 +29,7 @@ const SupplyAnalytics: React.FC<SupplyAnalyticsProps> = ({ analytics, sortBy, on
               : String(m.value ?? ''),
           trend: m.trend_up ? ('up' as const) : ('down' as const),
         }))
-      : supplierSummaryData;
+      : [];
   const suppliersTable = useMemo(() => {
     const rows = analytics?.top_suppliers?.length
       ? analytics.top_suppliers.map((s) => ({
@@ -35,7 +42,12 @@ const SupplyAnalytics: React.FC<SupplyAnalyticsProps> = ({ analytics, sortBy, on
           mostSuppliedItem: s.most_supplied_item,
         }))
       : [];
-    const key = sortBy === 'volume' ? 'volumeSupplied' : sortBy === 'value' ? 'valueSupplied' : 'ordersDelivered';
+    const key =
+      sortBy === 'volume'
+        ? 'volumeSupplied'
+        : sortBy === 'value'
+          ? 'valueSupplied'
+          : 'ordersDelivered';
     return [...rows].sort((a, b) => Number(b[key]) - Number(a[key]));
   }, [analytics?.top_suppliers, sortBy]);
   return (
@@ -50,16 +62,35 @@ const SupplyAnalytics: React.FC<SupplyAnalyticsProps> = ({ analytics, sortBy, on
             id="supplier-sort"
             invalidText="Invalid selection"
             itemToString={(item) => (item ? item.label : '')}
-            items={[
-              { label: 'Volume Supplied', value: 'volume' },
-              { label: 'Value Supplied', value: 'value' },
-              { label: 'Order Frequency', value: 'frequency' },
-            ] as Array<{label: string; value: 'volume'|'value'|'frequency'}>}
-            selectedItem={sortBy === 'volume' ? { label: 'Volume Supplied', value: 'volume' } : sortBy === 'value' ? { label: 'Value Supplied', value: 'value' } : { label: 'Order Frequency', value: 'frequency' }}
-            label={sortBy === 'volume' ? 'Volume Supplied' : sortBy === 'value' ? 'Value Supplied' : 'Order Frequency'}
+            items={
+              [
+                { label: 'Volume Supplied', value: 'volume' },
+                { label: 'Value Supplied', value: 'value' },
+                { label: 'Order Frequency', value: 'frequency' },
+              ] as Array<{
+                label: string;
+                value: 'volume' | 'value' | 'frequency';
+              }>
+            }
+            selectedItem={
+              sortBy === 'volume'
+                ? { label: 'Volume Supplied', value: 'volume' }
+                : sortBy === 'value'
+                  ? { label: 'Value Supplied', value: 'value' }
+                  : { label: 'Order Frequency', value: 'frequency' }
+            }
+            label={
+              sortBy === 'volume'
+                ? 'Volume Supplied'
+                : sortBy === 'value'
+                  ? 'Value Supplied'
+                  : 'Order Frequency'
+            }
             titleText="Sort suppliers by"
             type="default"
-            onChange={(e: any) => onChangeSort(e.selectedItem?.value ?? 'volume')}
+            onChange={(e: any) =>
+              onChangeSort(e.selectedItem?.value ?? 'volume')
+            }
           />
         </div>
       </div>
@@ -78,17 +109,21 @@ const SupplyAnalytics: React.FC<SupplyAnalyticsProps> = ({ analytics, sortBy, on
         <SortableTable
           filterOptions={[]}
           headers={mostOrderedProductsHeaders}
-          data={(analytics?.most_ordered_products && analytics.most_ordered_products.length > 0)
-            ? analytics.most_ordered_products.map((p: ProductDto, idx: number) => ({
-                id: String(idx + 1),
-                name: p.generic_name,
-                brand: p.brand_name ?? '',
-                strength: p.sku ?? '',
-                orders: p.ordered_qty,
-              }))
-            : []}
+          data={
+            analytics?.most_ordered_products &&
+            analytics.most_ordered_products.length > 0
+              ? analytics.most_ordered_products.map(
+                  (p: ProductDto, idx: number) => ({
+                    id: String(idx + 1),
+                    tradeName: p.trade_name ?? p.generic_name,
+                    strength: p.sku ?? '',
+                    orders: p.ordered_qty,
+                  }),
+                )
+              : []
+          }
           title="Most Ordered Products"
-          searchField="name"
+          searchField="tradeName"
         />
       </div>
     </div>

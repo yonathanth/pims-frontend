@@ -14,7 +14,7 @@ export interface LocationRow {
   id: string;
   name: string;
   type: string;
-  maxCapacity: number | null;
+  maxCapacity: string | null;
   description?: string;
 }
 
@@ -25,10 +25,10 @@ export function useLocationsTable() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [q, setQ] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'locationType' | 'maxCapacity'>(
-    'name',
-  );
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<
+    'name' | 'locationType' | 'maxCapacity' | 'id'
+  >('id');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [locationType, setLocationType] = useState<string | undefined>(
     undefined,
   );

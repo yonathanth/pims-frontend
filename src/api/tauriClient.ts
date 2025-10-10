@@ -1,6 +1,15 @@
 // HTTP client for REST API calls (Tauri app connecting to remote backend)
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+import { loadAppConfig } from '../config/app-config';
+import { debugLogger } from '../utils/debugLogger';
+
+// Get API base URL from configuration
+const getApiBaseUrl = (): string => {
+  const config = loadAppConfig();
+  return config.apiBaseUrl;
+};
+
+// Global API base URL - updated dynamically (used internally by HttpClient)
+// API_BASE_URL is now dynamically loaded in each request
 
 export interface ApiResponse<T> {
   data: T;
@@ -17,8 +26,13 @@ export interface ApiError {
 class HttpClient {
   private baseURL: string;
 
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
+  constructor() {
+    this.baseURL = getApiBaseUrl();
+  }
+
+  // Method to update base URL at runtime
+  updateBaseUrl(newUrl: string) {
+    this.baseURL = newUrl;
   }
 
   private async request<T>(
@@ -26,6 +40,14 @@ class HttpClient {
     options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+
+    // Debug logging for built app troubleshooting
+    debugLogger.info('API Request', {
+      url,
+      method: options.method || 'GET',
+      baseURL: this.baseURL,
+      endpoint,
+    });
 
     // Get session from localStorage for authentication
     const session = localStorage.getItem('session');
@@ -48,13 +70,27 @@ class HttpClient {
     const config: RequestInit = {
       ...options,
       headers,
+      mode: 'cors',
+      credentials: 'include',
     };
 
     try {
       const response = await fetch(url, config);
 
+      debugLogger.info('API Response', {
+        url,
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText,
+      });
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        debugLogger.error('API Error', {
+          url,
+          status: response.status,
+          errorData,
+        });
         const err: any = new Error(
           errorData.message || `HTTP error! status: ${response.status}`,
         );
@@ -64,8 +100,14 @@ class HttpClient {
       }
 
       const data = await response.json();
+      debugLogger.info('API Success', { url, data });
       return data;
     } catch (error) {
+      debugLogger.error('API Request Failed', {
+        url,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       if (error instanceof Error) {
         throw error;
       }
@@ -113,7 +155,12 @@ class HttpClient {
   }
 }
 
-const httpClient = new HttpClient(API_BASE_URL);
+const httpClient = new HttpClient();
+
+// Export function to update API URL at runtime
+export const updateApiBaseUrl = (newUrl: string) => {
+  httpClient.updateBaseUrl(newUrl);
+};
 
 // Legacy compatibility function for existing code
 export async function call<T>(
@@ -245,14 +292,30 @@ export async function call<T>(
         payload && (payload as any).query ? (payload as any).query : payload;
       return httpClient.get<T>(endpoint, params as any);
     }
-    case 'POST':
-      return httpClient.post<T>(endpoint, payload);
-    case 'PUT':
-      return httpClient.put<T>(endpoint, payload);
-    case 'PATCH':
-      return httpClient.patch<T>(endpoint, payload);
-    case 'DELETE':
-      return httpClient.delete<T>(endpoint);
+    case 'POST': {
+      const data =
+        payload && (payload as any).input ? (payload as any).input : payload;
+      return httpClient.post<T>(endpoint, data);
+    }
+    case 'PUT': {
+      const data =
+        payload && (payload as any).input ? (payload as any).input : payload;
+      const id = payload && (payload as any).id ? (payload as any).id : null;
+      const url = id ? `${endpoint}/${id}` : endpoint;
+      return httpClient.put<T>(url, data);
+    }
+    case 'PATCH': {
+      const data =
+        payload && (payload as any).input ? (payload as any).input : payload;
+      const id = payload && (payload as any).id ? (payload as any).id : null;
+      const url = id ? `${endpoint}/${id}` : endpoint;
+      return httpClient.patch<T>(url, data);
+    }
+    case 'DELETE': {
+      const id = payload && (payload as any).id ? (payload as any).id : null;
+      const url = id ? `${endpoint}/${id}` : endpoint;
+      return httpClient.delete<T>(url);
+    }
     default:
       throw new Error(`Unsupported HTTP method: ${method}`);
   }

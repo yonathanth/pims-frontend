@@ -1,4 +1,4 @@
-import { call } from "./tauriClient";
+import { call } from './tauriClient';
 
 // General Config types
 export type GeneralConfigDto = {
@@ -13,7 +13,7 @@ export type GeneralConfigDto = {
 export type CreateGeneralConfigInput = {
   key: string;
   value: string;
-  data_type: string;
+  dataType: string;
   category: string;
   description?: string | null;
 };
@@ -29,19 +29,19 @@ export type ListGeneralConfigsQuery = {
 
 // API functions
 export const createGeneralConfig = (input: CreateGeneralConfigInput) => {
-  return call<GeneralConfigDto>("create_general_config", { input });
+  return call<GeneralConfigDto>('create_general_config', { input });
 };
 
 export const updateGeneralConfig = (
   id: number,
-  input: UpdateGeneralConfigInput
+  input: UpdateGeneralConfigInput,
 ) => {
-  return call<GeneralConfigDto>("update_general_config", { id, input });
+  return call<GeneralConfigDto>('update_general_config', { id, input });
 };
 
 export const deleteGeneralConfig = (id: number) => {
-  return call<number>("delete_general_config", { id });
+  return call<number>('delete_general_config', { id });
 };
 
 export const listGeneralConfigs = (query: ListGeneralConfigsQuery = {}) =>
-  call<GeneralConfigDto[]>("list_general_configs", { query });
+  call<GeneralConfigDto[]>('list_general_configs', { query });

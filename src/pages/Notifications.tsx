@@ -5,13 +5,10 @@ import {
   Button,
   Dropdown,
   Tag,
-  TextInput,
   Pagination,
-  Checkbox,
 } from '@carbon/react';
 import {
   Notification,
-  Search,
   ErrorFilled,
   WarningFilled,
   InformationFilled,
@@ -20,6 +17,7 @@ import {
 } from '@carbon/icons-react';
 import useScrollbarStyles from '../hooks/useScrollbarStyles';
 import DashboardLayout from './dashboard/layouts/DashboardLayout';
+import { useGlobalNotifications } from '../contexts/GlobalNotificationContext';
 import { useNotifications } from '../hooks/useNotifications';
 import type { ListNotificationsQuery } from '../types/notification';
 
@@ -88,20 +86,20 @@ const NOTIFICATION_LABELS = {
 };
 
 // Updated type mapping to match backend response
-const TYPE_MAP = {
-  out_of_stock: 'out_of_stock',
-  low_stock: 'low_stock',
-  expired: 'expired',
-  near_expiry: 'near_expiry',
-} as const;
+// const TYPE_MAP = {
+//   out_of_stock: 'out_of_stock',
+//   low_stock: 'low_stock',
+//   expired: 'expired',
+//   near_expiry: 'near_expiry',
+// } as const;
 
 // Updated urgency order for sorting
-const URGENCY_ORDER = {
-  expired: 1,
-  out_of_stock: 2,
-  near_expiry: 3,
-  low_stock: 4,
-};
+// const URGENCY_ORDER = {
+//   expired: 1,
+//   out_of_stock: 2,
+//   near_expiry: 3,
+//   low_stock: 4,
+// };
 
 /*const EXPIRY_UNIT_OPTIONS = [
   { id: 'days', text: 'Days' },
@@ -284,6 +282,14 @@ const NotificationCard = React.memo(
 const Notifications = () => {
   useScrollbarStyles();
 
+  // Get global notification context
+  const { forceRefresh } = useGlobalNotifications();
+
+  // Refresh global counts when notifications page loads
+  React.useEffect(() => {
+    forceRefresh();
+  }, [forceRefresh]);
+
   // Filter states
   const [selectedType, setSelectedType] = useState(FILTER_ITEMS[0]);
   const [selectedSeverity, setSelectedSeverity] = useState(
@@ -348,32 +354,36 @@ const Notifications = () => {
     async (id: number) => {
       try {
         await markAsRead(id);
+        // Force refresh global notification counts
+        forceRefresh();
       } catch (error) {
         console.error('Failed to mark notification as read:', error);
       }
     },
-    [markAsRead],
+    [markAsRead, forceRefresh],
   );
 
   const handleMarkAllAsRead = useCallback(async () => {
     try {
       await markAllAsRead();
+      // Force refresh global notification counts
+      forceRefresh();
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     }
-  }, [markAllAsRead]);
+  }, [markAllAsRead, forceRefresh]);
 
   const handlePageChange = useCallback(({ page }: { page: number }) => {
     setCurrentPage(page);
   }, []);
 
-  const handlePageSizeChange = useCallback(
-    ({ pageSize: newPageSize }: { pageSize: number }) => {
-      setPageSize(newPageSize);
-      setCurrentPage(1); // Reset to first page when changing page size
-    },
-    [],
-  );
+  // const _unused_handlePageSizeChange = useCallback(
+  //   ({ pageSize: newPageSize }: { pageSize: number }) => {
+  //     setPageSize(newPageSize);
+  //     setCurrentPage(1); // Reset to first page when changing page size
+  //   },
+  //   [],
+  // );
 
   // Show loading state
   if (loading) {
@@ -475,7 +485,10 @@ const Notifications = () => {
                     kind="primary"
                     renderIcon={Renew}
                     size="md"
-                    onClick={refetch}
+                    onClick={() => {
+                      refetch();
+                      forceRefresh();
+                    }}
                     disabled={loading}
                   >
                     Refresh
@@ -591,7 +604,6 @@ const Notifications = () => {
                         pageSizes={[10, 20, 50]}
                         totalItems={pagination.totalItems}
                         onChange={handlePageChange}
-                        onPageSizeChange={handlePageSizeChange}
                       />
                     </div>
                   )}

@@ -202,17 +202,18 @@ const CategoriesPage = () => {
           sortDirection: sortDir,
           onSort: (col, dir) => {
             // Only allow backend-supported columns
-            const allowed = ['name', 'drugCount'] as const;
+            const allowed = ['name', 'drugCount', 'id'] as const;
             const mapped = col === 'productsCount' ? 'drugCount' : col;
             if (!(allowed as readonly string[]).includes(mapped)) return;
             setSortBy(mapped as any);
             setSortDir(dir);
+            setPage(1); // Reset to first page when sorting changes
           },
           search: q,
           onSearchChange: (value) => setQ(value),
           activeFilter: 'All',
           onFilterChange: () => {},
-          sortableKeys: ['name', 'productsCount'],
+          sortableKeys: ['id', 'name', 'productsCount'],
         }}
         renderCell={(row, key) =>
           key === 'actions' ? renderActionsMenu(row) : (row as any)[key]

@@ -9,9 +9,7 @@ import { authStatus } from './api/auth';
 // import OnboardingWelcome from "./pages/onboarding/OnboardingWelcome";
 import LoginPage from './pages/LoginPage';
 import Step1 from './pages/onboarding/steps/pages/Step1';
-import Step2 from './pages/onboarding/steps/pages/Step2';
 import Notifications from './pages/Notifications';
-import Step3 from './pages/onboarding/steps/pages/Step3';
 import Dashboard from './pages/dashboard/pages/Dashboard';
 import InventoryList from './pages/inventory/pages/InventoryList';
 import SuppliersPage from './pages/SuppliersPage';
@@ -24,14 +22,19 @@ import ReportGenerationPage from './pages/ReportGenerationPage';
 import AuditLogPage from './pages/AuditLogPage';
 import TransactionsPage from './pages/TransactionsPage';
 import Analytics from './pages/analytics/Analytics';
-import SettingsPage from './pages/settingpage';
+// import SettingsPage from './pages/settingpage';
 import OnboardingWelcome from './pages/onboarding/OnboardingWelcome.tsx';
+import Step0 from './pages/onboarding/steps/pages/Step0';
+import Step2 from './pages/onboarding/steps/pages/Step2';
 import SellerPage from './pages/SellerPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './hooks/useAuth';
 
 export default function AppRouter() {
   const [setupStatus, setSetupStatus] = useState<{
     initialized: boolean;
     hasUser: boolean;
+    hasAdminUser: boolean;
     setupComplete: boolean;
   } | null>(null);
 
@@ -42,6 +45,7 @@ export default function AppRouter() {
         setSetupStatus({
           initialized: status.initialized,
           hasUser: status.hasUser,
+          hasAdminUser: status.hasAdminUser,
           setupComplete: status.setupComplete,
         });
       } catch {
@@ -49,6 +53,7 @@ export default function AppRouter() {
         setSetupStatus({
           initialized: true,
           hasUser: true,
+          hasAdminUser: true,
           setupComplete: true,
         });
       }
@@ -57,13 +62,23 @@ export default function AppRouter() {
 
   if (setupStatus === null) return null;
 
+  function RoleLanding() {
+    const { session } = useAuth();
+    const role = session?.user?.role;
+    if (role === 'SELLER') return <Navigate to="/dashboard/seller" replace />;
+    if (role === 'PHARMACIST')
+      return <Navigate to="/dashboard/inventory" replace />;
+    // Admin and Manager (and any other roles) go to admin dashboard
+    return <Navigate to="/dashboard/admin" replace />;
+  }
+
   return (
     <Router>
       <Routes>
         <Route
           path="/"
           element={
-            setupStatus.initialized ? (
+            setupStatus.hasAdminUser ? (
               <Navigate to="/login" replace />
             ) : (
               <OnboardingWelcome />
@@ -71,25 +86,130 @@ export default function AppRouter() {
           }
         />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/onboarding/step0" element={<Step0 />} />
         <Route path="/onboarding/step1" element={<Step1 />} />
         <Route path="/onboarding/step2" element={<Step2 />} />
-        <Route path="/onboarding/step3" element={<Step3 />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/home" element={<Dashboard />} />
-        <Route path="/dashboard/inventory" element={<InventoryList />} />
-        <Route path="/dashboard/suppliers" element={<SuppliersPage />} />
-        <Route path="/dashboard/employees" element={<EmployeesPage />} />
-        <Route path="/dashboard/products" element={<ProductsPage />} />
-        <Route path="/dashboard/orders" element={<OrdersPage />} />
-        <Route path="/dashboard/locations" element={<LocationsPage />} />
-        <Route path="/dashboard/reports" element={<ReportGenerationPage />} />
-        <Route path="/dashboard/audit" element={<AuditLogPage />} />
-        <Route path="/dashboard/transactions" element={<TransactionsPage />} />
-        <Route path="/dashboard/analytics" element={<Analytics />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/dashboard/categories" element={<CategoriesPage />} />
-        <Route path="/dashboard/seller" element={<SellerPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute
+              allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST', 'SELLER']}
+              fallbackPath="/login"
+            >
+              <RoleLanding />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin"
+          element={
+            <ProtectedRoute
+              allowedRoles={['ADMIN', 'MANAGER']}
+              fallbackPath="/dashboard"
+            >
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/inventory"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST']}>
+              <InventoryList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/suppliers"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+              <SuppliersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/employees"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <EmployeesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/products"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST']}>
+              <ProductsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/orders"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+              <OrdersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/locations"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST']}>
+              <LocationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/reports"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+              <ReportGenerationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/audit"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+              <AuditLogPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/transactions"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+              <TransactionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/analytics"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+              <Analytics />
+            </ProtectedRoute>
+          }
+        />
+        {/* Settings page hidden */}
+        {/* <Route path="/settings" element={<SettingsPage />} /> */}
+        <Route
+          path="/dashboard/categories"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST']}>
+              <CategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/seller"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'SELLER']}>
+              <SellerPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

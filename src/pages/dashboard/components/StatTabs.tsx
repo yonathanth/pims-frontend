@@ -20,7 +20,7 @@ const StatTabs: React.FC<StatTabsProps> = ({ summaryData }) => {
         gridTemplateRows: 'repeat(2, auto)',
       }}
     >
-      {summaryData.map(({ label, value, change, trend, icon }, index) => (
+      {summaryData.map(({ label, value }, index) => (
         <div
           key={index}
           className="border p-4 flex flex-col gap-2"

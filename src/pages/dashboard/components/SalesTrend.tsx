@@ -1,6 +1,6 @@
 import { LineChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
-import { salesTrend } from '../../../data/barData';
+// Remove fallback mock; show empty chart when no data
 import type { MonthlyData } from '../../../api/dashboard';
 import ChartErrorBoundary from '../../../components/ChartErrorBoundary';
 
@@ -17,7 +17,7 @@ const SalesTrend = ({ data }: SalesTrendProps) => {
         key: item.month,
         value: item.sales,
       }))
-    : salesTrend.data;
+    : [];
 
   const options = {
     title: 'Monthly Sales',

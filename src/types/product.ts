@@ -3,25 +3,25 @@ export type DrugDto = {
   drugId: number;
   sku: string;
   genericName: string;
-  brandName?: string | null;
+  tradeName?: string | null;
   strength: string;
   description: string;
   categoryId: number;
 };
 
 export type CreateDrugInput = {
-  sku: string;
+  sku?: string;
   generic_name: string;
-  brand_name?: string | null;
+  trade_name?: string | null;
   strength: string;
   description: string;
   category_id: number;
 };
 
 export type UpdateDrugInput = {
-  sku: string;
+  sku?: string;
   generic_name: string;
-  brand_name?: string | null;
+  trade_name?: string | null;
   strength: string;
   description: string;
   category_id: number;
@@ -49,8 +49,8 @@ export type CategoryWithTotalsDto = {
 };
 
 export type ListDrugsQuery = {
-  q?: string; // search by sku, generic_name, brand_name
-  sort_by?: "sku" | "generic_name" | "brand_name";
+  q?: string; // search by sku, generic_name, trade_name
+  sort_by?: 'sku' | 'generic_name' | 'trade_name';
   descending?: boolean;
   limit?: number;
   offset?: number;
@@ -58,7 +58,7 @@ export type ListDrugsQuery = {
 
 export type ListCategoriesQuery = {
   q?: string;
-  sort_by?: "name";
+  sort_by?: 'name';
   descending?: boolean;
   limit?: number;
   offset?: number;

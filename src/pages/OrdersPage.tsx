@@ -32,7 +32,6 @@ import { useSuppliers } from '../hooks/useSuppliers';
 import { useProducts } from '../hooks/useProducts';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoriesSearch } from '../hooks/useCategoriesSearch';
-import { createPurchaseOrder } from '../api/orders';
 import { createBatch } from '../api/inventory';
 import { updatePurchaseOrderItem } from '../api/orders';
 import {
@@ -226,37 +225,55 @@ const OrdersPage = () => {
         setModalError('Please select a valid supplier');
         return;
       }
+
+      // Validate that we have items
+      if (modalItems.length === 0) {
+        setModalError('Please add at least one item to the order');
+        return;
+      }
+
+      // Validate all items have valid quantities
+      const invalidItems = modalItems.filter(
+        (item) => !item.productId || item.expected <= 0,
+      );
+      if (invalidItems.length > 0) {
+        setModalError(
+          'All items must have a valid product and quantity greater than 0',
+        );
+        return;
+      }
+
       const supplier_id = Number(
         (selectedSupplier as any).id ?? (selectedSupplier as any).supplierId,
       );
       const created_at = toBackendDateTime(orderDate);
       const expected_date = toBackendDateTime(arrivalDate);
       const computedStatus = deriveOrderStatus(modalItems);
-      const orderData: any = {
+
+      // Use the new bulk creation endpoint
+      const api = await import('../api/orders');
+      await api.createPurchaseOrderWithItems({
         supplier_id,
         created_at,
         expected_date,
         status: computedStatus,
-      };
-      const createdOrder = await createPurchaseOrder(orderData);
-      const api = await import('../api/orders');
-      for (const item of modalItems) {
-        if (!item.productId) continue;
-        await api.createPurchaseOrderItem({
-          purchase_order_id: createdOrder.purchase_order_id,
-          drug_id: Number(item.productId),
-          quantity_ordered: item.expected,
-          quantity_received: item.received,
-          unit_cost: 0,
-          status: item.cancelled
-            ? 'Cancelled'
-            : item.received === 0
-              ? 'Pending'
-              : item.received < item.expected
-                ? 'Partially Received'
-                : 'Complete',
-        });
-      }
+        items: modalItems
+          .filter((item) => item.productId) // Only include items with valid product IDs
+          .map((item) => ({
+            drug_id: Number(item.productId),
+            quantity_ordered: item.expected,
+            quantity_received: item.received,
+            unit_cost: 0,
+            status: item.cancelled
+              ? 'Cancelled'
+              : item.received === 0
+                ? 'Pending'
+                : item.received < item.expected
+                  ? 'Partially Received'
+                  : 'Complete',
+          })),
+      });
+
       setShowAddModal(false);
       setShowSuccess(true);
       resetForm();
@@ -730,7 +747,7 @@ const OrdersPage = () => {
       const productData: any = {
         sku: newProductSku.trim(),
         generic_name: newProductName.trim(),
-        brand_name: newProductBrand.trim() || null,
+        trade_name: newProductBrand.trim() || null,
         strength: newProductStrength.trim() || '',
         description: newProductDescription.trim() || '',
         category_id: selectedCategory
@@ -802,16 +819,22 @@ const OrdersPage = () => {
           sortColumn: sortBy,
           sortDirection: sortDir,
           onSort: (col, dir) => {
-            const allowed = ['createdDate', 'expectedDate', 'status'] as const;
+            const allowed = [
+              'createdDate',
+              'expectedDate',
+              'status',
+              'id',
+            ] as const;
             if (!(allowed as readonly string[]).includes(col)) return;
             setSortBy(col as any);
             setSortDir(dir);
+            setPage(1); // Reset to first page when sorting changes
           },
           search: q,
           onSearchChange: (value) => setQ(value),
           activeFilter: statusFilter ?? 'All Statuses',
           onFilterChange: (value) => setStatusFilter(value),
-          sortableKeys: ['createdDate', 'expectedDate', 'status'],
+          sortableKeys: ['id', 'createdDate', 'expectedDate', 'status'],
         }}
       />
 
@@ -1139,11 +1162,11 @@ const OrdersPage = () => {
           },
           {
             key: 'prodBrand',
-            label: 'Brand',
+            label: 'Trade Name',
             type: 'text',
             value: newProductBrand,
             onChange: (v: any) => setNewProductBrand(v as string),
-            placeholder: 'Enter brand',
+            placeholder: 'Enter trade name',
           },
           {
             key: 'prodCategory',

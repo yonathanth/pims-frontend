@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Button,
   InlineNotification,
@@ -33,6 +33,20 @@ export const PendingSalesStack: React.FC = () => {
     declineSale,
   } = usePendingSales();
 
+  // Memoize the sale cards to prevent unnecessary re-renders
+  const saleCards = useMemo(
+    () =>
+      pendingSales.map((sale) => (
+        <PendingSaleCard
+          key={sale.id}
+          sale={sale}
+          onApprove={approveSale}
+          onDecline={declineSale}
+        />
+      )),
+    [pendingSales, approveSale, declineSale],
+  );
+
   if (loading && pendingSales.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -61,37 +75,57 @@ export const PendingSalesStack: React.FC = () => {
 
   if (pendingSales.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">
-          <svg
-            className="w-16 h-16 mx-auto"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+      <div className="h-full flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-lg font-semibold">Pending Sales (0)</h2>
+            <p
+              className="text-sm"
+              style={{ color: 'var(--cds-text-secondary)' }}
+            >
+              Sales waiting for your approval
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              kind="secondary"
+              size="sm"
+              renderIcon={Renew}
+              onClick={refreshPendingSales}
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <HistoryButton />
+          </div>
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          No Pending Sales
-        </h3>
-        <p className="mb-4" style={{ color: 'var(--cds-text-secondary)' }}>
-          All sales have been processed. New sales will appear here when
-          created.
-        </p>
-        <Button
-          kind="secondary"
-          renderIcon={Renew}
-          onClick={refreshPendingSales}
-          disabled={loading}
-        >
-          {loading ? 'Refreshing...' : 'Refresh'}
-        </Button>
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <svg
+                className="w-16 h-16 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Pending Sales
+            </h3>
+            <p className="mb-4" style={{ color: 'var(--cds-text-secondary)' }}>
+              All sales have been processed. New sales will appear here when
+              created.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -121,16 +155,7 @@ export const PendingSalesStack: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto pr-2">
-        {pendingSales.map((sale) => (
-          <PendingSaleCard
-            key={sale.id}
-            sale={sale}
-            onApprove={approveSale}
-            onDecline={declineSale}
-          />
-        ))}
-      </div>
+      <div className="flex-1 space-y-4 overflow-y-auto pr-2">{saleCards}</div>
     </div>
   );
 };
