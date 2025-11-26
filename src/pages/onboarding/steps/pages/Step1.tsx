@@ -97,6 +97,7 @@ export default function Step1() {
                   setFullName(v);
                   persistForm({ fullName: v });
                 }}
+                autoComplete="off"
               />
               <TextInput
                 id="email"
@@ -109,6 +110,7 @@ export default function Step1() {
                   setEmail(v);
                   persistForm({ email: v });
                 }}
+                autoComplete="off"
               />
               <TextInput
                 id="phone-number"
@@ -121,6 +123,7 @@ export default function Step1() {
                   setPhoneNumber(v);
                   persistForm({ phoneNumber: v });
                 }}
+                autoComplete="off"
               />
               <TextInput
                 id="username"
@@ -133,6 +136,7 @@ export default function Step1() {
                   setUsername(v);
                   persistForm({ username: v });
                 }}
+                autoComplete="off"
               />
               <Select
                 id="role"
@@ -168,6 +172,7 @@ export default function Step1() {
                   setPassword(v);
                   persistForm({ password: v });
                 }}
+                autoComplete="off"
               />
               <PasswordInput
                 id="confirm-password"
@@ -180,8 +185,8 @@ export default function Step1() {
                 onChange={(e) => {
                   const v = e.target.value;
                   setConfirmPassword(v);
-                  persistForm({ confirmPassword: v });
                 }}
+                autoComplete="off"
               />
             </div>
           </div>

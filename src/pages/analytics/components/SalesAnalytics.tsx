@@ -41,7 +41,9 @@ const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ analytics }) => {
     analytics?.fast_moving_products && analytics.fast_moving_products.length > 0
       ? analytics.fast_moving_products.map((p: ProductDto, idx: number) => ({
           id: String(idx + 1),
-          drugName: p.generic_name,
+          drugName: p.trade_name
+            ? `${p.generic_name} (${p.trade_name})`
+            : p.generic_name,
           sku: p.sku ?? '',
           batchNumber: p.batch_number ?? '',
           expiryDate: p.expiry_date ?? '',
@@ -57,7 +59,9 @@ const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ analytics }) => {
     analytics?.slow_moving_products && analytics.slow_moving_products.length > 0
       ? analytics.slow_moving_products.map((p: ProductDto, idx: number) => ({
           id: String(idx + 1),
-          drugName: p.generic_name,
+          drugName: p.trade_name
+            ? `${p.generic_name} (${p.trade_name})`
+            : p.generic_name,
           sku: p.sku ?? '',
           batchNumber: p.batch_number ?? '',
           expiryDate: p.expiry_date ?? '',

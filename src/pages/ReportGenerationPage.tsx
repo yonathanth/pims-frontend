@@ -270,6 +270,7 @@ const ReportGenerationPage = () => {
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               placeholder="mm/dd/yyyy"
+              autoComplete="off"
             />
           </div>
 
@@ -281,6 +282,7 @@ const ReportGenerationPage = () => {
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               placeholder="mm/dd/yyyy"
+              autoComplete="off"
             />
           </div>
 
@@ -337,6 +339,7 @@ const ReportGenerationPage = () => {
                 type="number"
                 value={daysThreshold}
                 onChange={(e) => setDaysThreshold(e.target.value)}
+                autoComplete="off"
                 placeholder="30"
               />
             </div>

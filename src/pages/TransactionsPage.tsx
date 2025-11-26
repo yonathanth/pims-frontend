@@ -199,6 +199,7 @@ const TransactionsPage = () => {
                     placeholder="Enter batch ID..."
                     value={batchId}
                     onChange={(e) => setBatchId(e.target.value)}
+                    autoComplete="off"
                   />
                 </div>
                 <div className="min-w-48">

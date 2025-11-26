@@ -57,6 +57,7 @@ export default function Step2() {
               setPharmacyName(e.target.value);
               handleFieldChange();
             }}
+            autoComplete="off"
           />
 
           <Select
@@ -90,6 +91,7 @@ export default function Step2() {
                 setOtherCity(e.target.value);
                 handleFieldChange();
               }}
+              autoComplete="off"
             />
           )}
 
@@ -104,6 +106,7 @@ export default function Step2() {
               setPhone(e.target.value);
               handleFieldChange();
             }}
+            autoComplete="off"
           />
 
           <TextInput
@@ -117,6 +120,7 @@ export default function Step2() {
               setAddress(e.target.value);
               handleFieldChange();
             }}
+            autoComplete="off"
           />
         </div>
       </div>

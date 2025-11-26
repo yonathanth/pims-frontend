@@ -39,6 +39,15 @@ import {
   type SelectedLocation,
 } from '../components/LocationSelector';
 
+// Helper function to format drug name as "genericName (tradeName)" or just "genericName"
+function formatDrugName(genericName?: string, tradeName?: string | null): string {
+  if (!genericName) return 'Unknown Product';
+  if (tradeName && tradeName.trim()) {
+    return `${genericName} (${tradeName})`;
+  }
+  return genericName;
+}
+
 // Modal line item type
 type ModalItem = {
   id: string;
@@ -120,6 +129,7 @@ const OrdersPage = () => {
   // Create Batch modal state
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchModalError, setBatchModalError] = useState<string | null>(null);
+  const [batchNumber, setBatchNumber] = useState<string>('');
   const [batchDrugId, setBatchDrugId] = useState<number | null>(null);
   const [batchSupplierId, setBatchSupplierId] = useState<number | null>(null);
   const [batchPurchaseDate, setBatchPurchaseDate] = useState<string>('');
@@ -369,10 +379,15 @@ const OrdersPage = () => {
           const productObj = products?.find(
             (p) => Number((p as any).id) === item.drug_id,
           );
-          const displayName =
-            (item as any).product_name ||
-            (productObj as any)?.name ||
-            `Drug ID: ${item.drug_id}`;
+          // Use formatted name from product object if available, otherwise format from API data
+          const displayName = productObj
+            ? formatDrugName(productObj.name, productObj.tradeName)
+            : (item as any).product_name ||
+              formatDrugName(
+                (item as any).generic_name,
+                (item as any).trade_name,
+              ) ||
+              `Drug ID: ${item.drug_id}`;
           return {
             id: `${editingOrderId}-${idx}`,
             productId: Number(item.drug_id),
@@ -447,6 +462,7 @@ const OrdersPage = () => {
       }
       // Create batch
       const result: any = await createBatch({
+        batch_number: batchNumber || undefined,
         drug_id: batchDrugId,
         supplier_id: batchSupplierId,
         manufacture_date: batchManufactureDate,
@@ -486,6 +502,7 @@ const OrdersPage = () => {
         } as any);
       }
       setShowBatchModal(false);
+      setBatchNumber('');
       setBatchModalError(null);
       // Refresh items cache for this order
       try {
@@ -496,10 +513,15 @@ const OrdersPage = () => {
           const productObj = products?.find(
             (p) => Number((p as any).id) === item.drug_id,
           );
-          const displayName =
-            (item as any).product_name ||
-            (productObj as any)?.name ||
-            `Drug ID: ${item.drug_id}`;
+          // Use formatted name from product object if available, otherwise format from API data
+          const displayName = productObj
+            ? formatDrugName(productObj.name, productObj.tradeName)
+            : (item as any).product_name ||
+              formatDrugName(
+                (item as any).generic_name,
+                (item as any).trade_name,
+              ) ||
+              `Drug ID: ${item.drug_id}`;
           return {
             id: `${orderRow.orderId}-${idx}`,
             productId: Number(item.drug_id),
@@ -858,7 +880,7 @@ const OrdersPage = () => {
               id="productToAdd"
               items={(products || []).slice(0, 50).map((p) => ({
                 id: Number(p.id),
-                text: (p as any).name,
+                text: formatDrugName((p as any).name, (p as any).tradeName),
                 value: Number(p.id),
               }))}
               itemToString={(it: any) => (it ? it.text : '')}
@@ -965,6 +987,7 @@ const OrdersPage = () => {
         isOpen={showBatchModal}
         onClose={() => {
           setShowBatchModal(false);
+      setBatchNumber('');
           setBatchModalError(null);
         }}
         onSubmit={() => {
@@ -994,6 +1017,16 @@ const OrdersPage = () => {
             value: batchDrugId ? String(batchDrugId) : '',
             onChange: (v) => setBatchDrugId(Number(v)),
             required: true,
+          },
+          {
+            key: 'batchNumber',
+            label: 'Batch Number (Optional)',
+            type: 'text',
+            value: batchNumber,
+            onChange: (v) => setBatchNumber(String(v)),
+            placeholder: 'Enter batch number (e.g., BATCH-001)',
+            required: false,
+            autoComplete: 'off',
           },
           {
             key: 'purchaseDate',
@@ -1271,6 +1304,7 @@ const ItemsTable = ({
                         id={`prod-${mi.id}`}
                         labelText=""
                         value={mi.productName}
+                        autoComplete="off"
                         onChange={(e: any) =>
                           onChangeItem(mi.id, (prev) => ({
                             ...prev,

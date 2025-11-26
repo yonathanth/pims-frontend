@@ -79,13 +79,15 @@ function mapUpdateItemPayload(input: UpdatePurchaseOrderItemInput) {
 }
 
 function toProductName(drug: any, drugId?: number) {
-  return (
-    drug?.tradeName ||
-    drug?.genericName ||
-    drug?.trade_name ||
-    drug?.generic_name ||
-    (drugId != null ? `Drug ID: ${drugId}` : 'Unknown Product')
-  );
+  const genericName =
+    drug?.genericName || drug?.generic_name || 'Unknown Product';
+  const tradeName = drug?.tradeName || drug?.trade_name;
+  
+  if (tradeName) {
+    return `${genericName} (${tradeName})`;
+  }
+  
+  return genericName || (drugId != null ? `Drug ID: ${drugId}` : 'Unknown Product');
 }
 
 // Purchase Order API

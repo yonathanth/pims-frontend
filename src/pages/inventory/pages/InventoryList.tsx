@@ -35,6 +35,7 @@ import { createTransaction } from '../../../api/inventory';
 
 // Define inventory headers for the table
 const inventoryHeaders = [
+  { key: 'id', header: 'Batch ID' },
   { key: 'batchNumber', header: 'Batch Number' },
   { key: 'drugName', header: 'Drug Name' },
   { key: 'sku', header: 'SKU' },
@@ -67,6 +68,7 @@ const InventoryList = () => {
   const [transactionNotes, setTransactionNotes] = useState('');
 
   // Form state
+  const [batchNumber, setBatchNumber] = useState('');
   const [selectedDrug, setSelectedDrug] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [manufactureDate, setManufactureDate] = useState('');
@@ -131,6 +133,7 @@ const InventoryList = () => {
   const { fetchTransactionsByBatch } = useBatchTransactions();
 
   const resetForm = () => {
+    setBatchNumber('');
     setSelectedDrug('');
     setSelectedSupplier('');
     setManufactureDate('');
@@ -172,6 +175,7 @@ const InventoryList = () => {
       }
 
       const res = await addBatch({
+        batch_number: batchNumber || undefined,
         drug_id: Number(drugItem.id),
         supplier_id: Number(supplierItem.id),
         manufacture_date: manufactureDate,
@@ -219,6 +223,7 @@ const InventoryList = () => {
       }
 
       const res = await updateBatch(editBatch.id, {
+        batch_number: batchNumber || undefined,
         drug_id: Number(drugItem.id),
         supplier_id: Number(supplierItem.id),
         manufacture_date: editBatch.manufactureDate,
@@ -619,6 +624,7 @@ const InventoryList = () => {
         onClick={async () => {
           setShowError(null);
           setEditBatch({ ...row });
+          setBatchNumber(row.batchNumberValue || row.batchNumber || '');
 
           // Fetch current locations for this batch
           try {
@@ -652,9 +658,9 @@ const InventoryList = () => {
     </OverflowMenu>
   );
 
-  // Prefer tradeName for display; fallback to generic name. Use id as value.
+  // Format as "genericName (tradeName)" or just "genericName". Use id as value.
   const drugOptions = products.map((p) => ({
-    text: p.tradeName ? `${p.tradeName} (${p.name})` : p.name,
+    text: p.tradeName ? `${p.name} (${p.tradeName})` : p.name,
     value: String(p.id),
   }));
   const supplierOptions = suppliers.map((s) => ({
@@ -678,6 +684,16 @@ const InventoryList = () => {
   ];
 
   const modalFields: FormField[] = [
+    {
+      key: 'batchNumber',
+      label: 'Batch Number (Optional)',
+      type: 'text',
+      value: batchNumber,
+      onChange: (value) => setBatchNumber(value as string),
+      placeholder: 'Enter batch number (e.g., BATCH-001)',
+      required: false,
+      autoComplete: 'off',
+    },
     {
       key: 'drug',
       label: 'Drug',
@@ -919,19 +935,20 @@ const InventoryList = () => {
                     titleText="Drug"
                   />
                 </div>
-              </div>
+              </div>-
 
               {/* Right side - Search and Add Button */}
               <div className="flex items-end gap-3">
-                <div className="min-w-64">
-                  <TextInput
-                    id="search-input"
-                    labelText="Search"
-                    placeholder="Search (Drug Name, SKU, Supplier)"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                  />
-                </div>
+                 <div className="min-w-64">
+                   <TextInput
+                     id="search-input"
+                     labelText="Search"
+                     placeholder="Search (Drug Name, SKU,Batch Number, Supplier)"
+                     value={q}
+                     onChange={(e) => setQ(e.target.value)}
+                     autoComplete="off"
+                   />
+                 </div>
                 <Button
                   kind="primary"
                   size="md"
@@ -1070,6 +1087,16 @@ const InventoryList = () => {
                   type: 'text',
                   value: editBatch.supplier,
                   onChange: () => {}, // Read-only for edit
+                },
+                {
+                  key: 'batchNumber',
+                  label: 'Batch Number (Optional)',
+                  type: 'text',
+                  value: batchNumber,
+                  onChange: (v) => setBatchNumber(v as string),
+                  placeholder: 'Enter batch number (e.g., BATCH-001)',
+                  required: false,
+                  autoComplete: 'off',
                 },
                 {
                   key: 'manufactureDate',

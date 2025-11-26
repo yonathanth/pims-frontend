@@ -11,6 +11,7 @@ export type BatchDto = {
 };
 
 export type CreateBatchInput = {
+  batch_number?: string;
   drug_id: number;
   supplier_id: number;
   manufacture_date: string;

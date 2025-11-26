@@ -88,6 +88,7 @@ export default function Step0() {
                   persistForm({ serverUrl: v });
                   setServerUrlError('');
                 }}
+                autoComplete="off"
                 invalid={!!serverUrlError}
                 invalidText={serverUrlError}
                 helperText="Enter the full URL including protocol and port (e.g., http://localhost:3000/api)"

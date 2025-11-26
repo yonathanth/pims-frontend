@@ -33,6 +33,7 @@ export const listBatches = async (query: any = {}) => {
 
 export const createBatch = (input: CreateBatchInput) => {
   return httpClient.post('/batches', {
+    batchNumber: input.batch_number,
     drugId: input.drug_id,
     supplierId: input.supplier_id,
     manufactureDate: input.manufacture_date,
@@ -48,6 +49,7 @@ export const createBatch = (input: CreateBatchInput) => {
 
 export const updateBatch = (id: number, input: UpdateBatchInput) => {
   return httpClient.patch(`/batches/${id}`, {
+    batchNumber: input.batch_number,
     drugId: input.drug_id,
     supplierId: input.supplier_id,
     manufactureDate: input.manufacture_date,

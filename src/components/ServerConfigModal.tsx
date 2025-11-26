@@ -92,6 +92,7 @@ export default function ServerConfigModal({
             onChange={(e) => handleServerUrlChange(e.target.value)}
             invalid={!!serverUrlError}
             invalidText={serverUrlError}
+            autoComplete="off"
             helperText="Enter the full URL including protocol and port"
             size="lg"
           />

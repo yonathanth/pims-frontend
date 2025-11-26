@@ -86,7 +86,9 @@ const InventoryAnalyticsPanel: React.FC<InventoryAnalyticsPanelProps> = ({
               ? analytics.out_of_stock_products.map(
                   (p: ProductDto, idx: number) => ({
                     id: String(idx + 1),
-                    drugName: p.generic_name,
+                    drugName: p.trade_name
+                      ? `${p.generic_name} (${p.trade_name})`
+                      : p.generic_name,
                     sku: p.sku ?? '',
                     batchNumber: p.batch_number ?? '',
                     expiryDate: p.expiry_date ?? '',
@@ -115,7 +117,9 @@ const InventoryAnalyticsPanel: React.FC<InventoryAnalyticsPanelProps> = ({
               ? analytics.expired_products.map(
                   (p: ProductDto, idx: number) => ({
                     id: String(idx + 1),
-                    drugName: p.generic_name,
+                    drugName: p.trade_name
+                      ? `${p.generic_name} (${p.trade_name})`
+                      : p.generic_name,
                     sku: p.sku ?? '',
                     batchNumber: p.batch_number ?? '',
                     expiryDate: p.expiry_date ?? '',
@@ -144,7 +148,9 @@ const InventoryAnalyticsPanel: React.FC<InventoryAnalyticsPanelProps> = ({
               ? analytics.soon_to_expire_products.map(
                   (p: ProductDto, idx: number) => ({
                     id: String(idx + 1),
-                    drugName: p.generic_name,
+                    drugName: p.trade_name
+                      ? `${p.generic_name} (${p.trade_name})`
+                      : p.generic_name,
                     sku: p.sku ?? '',
                     batchNumber: p.batch_number ?? '',
                     expiryDate: p.expiry_date ?? '',
@@ -172,7 +178,9 @@ const InventoryAnalyticsPanel: React.FC<InventoryAnalyticsPanelProps> = ({
               ? analytics.soon_to_be_out_of_stock_products.map(
                   (p: ProductDto, idx: number) => ({
                     id: String(idx + 1),
-                    drugName: p.generic_name,
+                    drugName: p.trade_name
+                      ? `${p.generic_name} (${p.trade_name})`
+                      : p.generic_name,
                     sku: p.sku ?? '',
                     batchNumber: p.batch_number ?? '',
                     expiryDate: p.expiry_date ?? '',

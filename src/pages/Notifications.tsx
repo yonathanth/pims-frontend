@@ -242,6 +242,7 @@ const NotificationCard = React.memo(
               const val = e.target.value;
               if (/^\d*$/.test(val)) setStockThreshold(val);
             }}
+            autoComplete="off"
           />
           <span className="text-base ml-1">units</span>
         </div>
@@ -259,6 +260,10 @@ const NotificationCard = React.memo(
             type="number"
             min="0"
             onChange={e => {
+              const val = e.target.value;
+              if (/^\d*$/.test(val)) setExpiryValue(val);
+            }}
+            autoComplete="off"
               const val = e.target.value;
               if (/^\d*$/.test(val)) setExpiryValue(val);
             }}

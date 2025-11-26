@@ -376,6 +376,7 @@ export const SortableTable = <T extends TableRow = TableRow>({
                 labelText=""
                 placeholder={searchPlaceholder || 'Search'}
                 value={search}
+                autoComplete="off"
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(1);

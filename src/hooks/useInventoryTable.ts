@@ -32,6 +32,7 @@ export interface InventoryRow {
   manufactureDate: string;
   unitCost: number;
   currentQty: number;
+  batchNumberValue?: string; // Original batchNumber from API (for editing)
 }
 
 export function useInventoryTable() {
@@ -70,7 +71,7 @@ export function useInventoryTable() {
       const params: any = {
         page,
         limit,
-        sortBy: sortBy === 'batchNumber' ? 'id' : sortBy, // Map batchNumber to id for backend
+        sortBy: sortBy, // Backend now supports batchNumber sorting
         sortDir,
       };
 
@@ -89,7 +90,7 @@ export function useInventoryTable() {
         // Use drugName which now contains tradeName ?? genericName from backend
         drugName: item.drugName || 'Unknown Drug',
         sku: item.drugSku || '',
-        batchNumber: String(item.id), // Using batch ID as batch number
+        batchNumber: item.batchNumber || String(item.id), // Use batchNumber if available, fallback to id
         expiryDate: item.expiryDate
           ? new Date(item.expiryDate).toISOString().split('T')[0]
           : '',
@@ -110,6 +111,7 @@ export function useInventoryTable() {
           : '',
         unitCost: item.unitCost || 0,
         currentQty: item.currentQty || 0,
+        batchNumberValue: item.batchNumber, // Store original batchNumber for editing
       }));
 
       setInventory(mapped);

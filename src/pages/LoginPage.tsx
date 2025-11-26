@@ -113,6 +113,7 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               disabled={isLoading}
               required
+              autoComplete="off"
             />
 
             <PasswordInput
@@ -126,6 +127,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
               required
+              autoComplete="off"
             />
 
             <Button

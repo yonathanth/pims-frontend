@@ -51,6 +51,7 @@ export default function Step3() {
               size="lg"
               value={lowStockThreshold}
               onChange={(e) => { setLowStockThreshold(e.target.value); handleFieldChange(); }}
+              autoComplete="off"
             />
 
             <Select
@@ -78,6 +79,7 @@ export default function Step3() {
               size="lg"
               value={nearExpiryDays}
               onChange={(e) => { setNearExpiryDays(e.target.value); handleFieldChange(); }}
+              autoComplete="off"
             />
           </div>
 

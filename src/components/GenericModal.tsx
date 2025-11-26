@@ -32,6 +32,7 @@ export interface FormField {
   loading?: boolean; // for searchable-combobox
   disabled?: boolean; // for disabling field
   renderComponent?: () => React.ReactNode; // for custom field type
+  autoComplete?: string; // for controlling browser autocomplete
 }
 
 export interface GenericModalProps {
@@ -236,28 +237,29 @@ const GenericModal = ({
                         </div>
                       )}
                   </>
-                ) : (
-                  <TextInput
-                    id={field.key}
-                    labelText=""
-                    type={field.type}
-                    placeholder={field.placeholder}
-                    value={
-                      field.type === 'number'
-                        ? String(field.value)
-                        : (field.value as string)
-                    }
-                    onChange={(e: any) => {
-                      if (field.type === 'number') {
-                        const val = e.target.value;
-                        field.onChange(val === '' ? '' : Number(val));
-                      } else {
-                        field.onChange(e.target.value);
-                      }
-                    }}
-                    size="md"
-                  />
-                )}
+                 ) : (
+                   <TextInput
+                     id={field.key}
+                     labelText=""
+                     type={field.type}
+                     placeholder={field.placeholder}
+                     value={
+                       field.type === 'number'
+                         ? String(field.value)
+                         : (field.value as string)
+                     }
+                     onChange={(e: any) => {
+                       if (field.type === 'number') {
+                         const val = e.target.value;
+                         field.onChange(val === '' ? '' : Number(val));
+                       } else {
+                         field.onChange(e.target.value);
+                       }
+                     }}
+                     autoComplete={field.autoComplete ?? 'off'}
+                     size="md"
+                   />
+                 )}
               </div>
             );
           })}

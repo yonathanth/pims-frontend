@@ -118,6 +118,7 @@ export const SalesTransactionTable: React.FC = () => {
             placeholder="Search by drug name or customer..."
             value={searchValue}
             onChange={(e) => handleSearch(e.target.value)}
+            autoComplete="off"
           />
         </div>
         <div className="w-full sm:w-48">

@@ -115,7 +115,9 @@ const SupplyAnalytics: React.FC<SupplyAnalyticsProps> = ({
               ? analytics.most_ordered_products.map(
                   (p: ProductDto, idx: number) => ({
                     id: String(idx + 1),
-                    tradeName: p.trade_name ?? p.generic_name,
+                    tradeName: p.trade_name
+                      ? `${p.generic_name} (${p.trade_name})`
+                      : p.generic_name,
                     strength: p.sku ?? '',
                     orders: p.ordered_qty,
                   }),

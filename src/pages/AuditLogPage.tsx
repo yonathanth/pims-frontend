@@ -129,6 +129,7 @@ const AuditLogPage = () => {
                 setEntityName(e.target.value);
                 setPage(1);
               }}
+              autoComplete="off"
             />
           </div>
           <div className="min-w-48">
@@ -140,6 +141,7 @@ const AuditLogPage = () => {
                 setUserId(e.target.value);
                 setPage(1);
               }}
+              autoComplete="off"
             />
           </div>
           <div className="min-w-48">
@@ -151,6 +153,7 @@ const AuditLogPage = () => {
                 setEntityId(e.target.value);
                 setPage(1);
               }}
+              autoComplete="off"
             />
           </div>
         </div>

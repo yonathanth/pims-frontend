@@ -92,6 +92,7 @@ export default function ServerConfigTab() {
                 onChange={(e) => handleServerUrlChange(e.target.value)}
                 invalid={!!serverUrlError}
                 invalidText={serverUrlError}
+                autoComplete="off"
                 helperText="Enter the full URL including protocol and port (e.g., http://localhost:3000/api)"
                 size="lg"
               />
