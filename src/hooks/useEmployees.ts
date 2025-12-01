@@ -17,11 +17,11 @@ export function useEmployees() {
       const result = await listUsers();
       const mapped = result.map((u: any) => ({
         id: String(u.id ?? u.userId),
-        name: u.fullName ?? u.full_name,
-        username: u.username,
-        role: u.role,
-        email: u.email,
-        phoneNumber: u.phoneNumber,
+        name: u.fullName ?? u.full_name ?? '',
+        username: u.username ?? '',
+        role: u.role ?? '',
+        email: u.email ?? '',
+        phoneNumber: u.phoneNumber ?? '',
       }));
       setEmployees(mapped);
       setError(null);
@@ -51,16 +51,16 @@ export function useEmployees() {
           bValue = parseInt(b.id);
           break;
         case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
+          aValue = (a.name || '').toLowerCase();
+          bValue = (b.name || '').toLowerCase();
           break;
         case 'username':
-          aValue = a.username.toLowerCase();
-          bValue = b.username.toLowerCase();
+          aValue = (a.username || '').toLowerCase();
+          bValue = (b.username || '').toLowerCase();
           break;
         case 'role':
-          aValue = a.role.toLowerCase();
-          bValue = b.role.toLowerCase();
+          aValue = (a.role || '').toLowerCase();
+          bValue = (b.role || '').toLowerCase();
           break;
         case 'email':
           aValue = (a.email || '').toLowerCase();

@@ -210,3 +210,29 @@ export const getMetricsSummary = (query: AnalyticsQuery = {}) =>
     '/analytics/metrics-summary',
     query as any,
   );
+
+// Upload status and trigger
+export interface AnalyticsUploadStatus {
+  running: boolean;
+  lastAttemptAt?: string | null;
+  lastSuccessAt?: string | null;
+  lastHash?: string | null;
+  lastResponseCode?: number | null;
+  lastDurationMs?: number | null;
+  lastSkipReason?: string | null;
+  lastError?: string | null;
+}
+
+export interface TriggerUploadResponse {
+  outcome: 'uploaded' | 'skipped-no-change' | 'skipped-running' | 'disabled' | 'error';
+  message?: string;
+  status: AnalyticsUploadStatus;
+}
+
+export const getUploadStatus = async (): Promise<AnalyticsUploadStatus> => {
+  return httpClient.get<AnalyticsUploadStatus>('/analytics/upload/status');
+};
+
+export const triggerUpload = async (force: boolean = false): Promise<TriggerUploadResponse> => {
+  return httpClient.post<TriggerUploadResponse>(`/analytics/upload/trigger?force=${force}`, {});
+};

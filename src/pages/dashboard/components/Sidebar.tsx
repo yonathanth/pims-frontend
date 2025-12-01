@@ -169,6 +169,17 @@ const HeaderWithNotifications = () => {
               Categories
             </SideNavLink>
           )}
+          {/* Unit Types - Admin, Manager, Pharmacist */}
+          {(userRole === 'ADMIN' ||
+            userRole === 'MANAGER' ||
+            userRole === 'PHARMACIST') && (
+            <SideNavLink
+              onClick={() => navigate('/dashboard/unit-types')}
+              renderIcon={Package}
+            >
+              Unit Types
+            </SideNavLink>
+          )}
           {/* Locations - Admin and Manager only */}
           {(userRole === 'ADMIN' ||
             userRole === 'MANAGER' ||

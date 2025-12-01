@@ -59,11 +59,11 @@ export const listDrugs = async (query: ListDrugsQuery = {}) => {
 
 export const createDrug = async (input: any) => {
   const payload = {
-    sku: input.sku,
+    sku: input.sku || undefined,
     genericName: input.generic_name ?? input.genericName,
-    tradeName: input.trade_name ?? input.tradeName,
+    tradeName: (input.trade_name ?? input.tradeName) || undefined,
     strength: input.strength,
-    description: input.description,
+    description: input.description || undefined,
     categoryId: input.category_id ?? input.categoryId,
   };
   return httpClient.post('/drugs', payload);
@@ -71,11 +71,11 @@ export const createDrug = async (input: any) => {
 
 export const updateDrug = async (id: number, input: any) => {
   const payload = {
-    sku: input.sku,
+    sku: input.sku || undefined,
     genericName: input.generic_name ?? input.genericName,
-    tradeName: input.trade_name ?? input.tradeName,
+    tradeName: (input.trade_name ?? input.tradeName) || undefined,
     strength: input.strength,
-    description: input.description,
+    description: input.description || undefined,
     categoryId: input.category_id ?? input.categoryId,
   };
   return httpClient.patch(`/drugs/${id}`, payload);

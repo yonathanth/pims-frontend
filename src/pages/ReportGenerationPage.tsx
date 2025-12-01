@@ -75,7 +75,7 @@ const ReportGenerationPage = () => {
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
         status: getStatusValue(status, reportType),
-        daysThreshold: parseInt(daysThreshold) || 30,
+        ...(reportType === 'Expiry Report' && { daysThreshold: parseInt(daysThreshold) || 30 }),
       };
 
       const reportTypeValue = REPORT_TYPES[reportType];
@@ -102,7 +102,7 @@ const ReportGenerationPage = () => {
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
         status: getStatusValue(status, reportType),
-        daysThreshold: parseInt(daysThreshold) || 30,
+        ...(reportType === 'Expiry Report' && { daysThreshold: parseInt(daysThreshold) || 30 }),
       };
 
       const reportTypeValue = REPORT_TYPES[reportType];
@@ -128,7 +128,7 @@ const ReportGenerationPage = () => {
         toDate: toDate || undefined,
         category: medicineCategory !== 'All' ? medicineCategory : undefined,
         status: getStatusValue(status, reportType),
-        daysThreshold: parseInt(daysThreshold) || 30,
+        ...(reportType === 'Expiry Report' && { daysThreshold: parseInt(daysThreshold) || 30 }),
       };
 
       const reportTypeValue = REPORT_TYPES[reportType];
@@ -158,7 +158,7 @@ const ReportGenerationPage = () => {
     } else if (reportType === 'Sales Report') {
       const salesMap: Record<string, string> = {
         'All Status': 'all_status',
-        Completed: 'completed',
+        Approved: 'approved',
         Pending: 'pending',
         Declined: 'declined',
       };
@@ -179,7 +179,7 @@ const ReportGenerationPage = () => {
       case 'Sales Report':
         return [
           { value: 'All Status', text: 'All Status' },
-          { value: 'Completed', text: 'Completed' },
+          { value: 'Approved', text: 'Approved' },
           { value: 'Pending', text: 'Pending' },
           { value: 'Declined', text: 'Declined' },
         ];

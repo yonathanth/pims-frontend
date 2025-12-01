@@ -32,16 +32,19 @@ export type PurchaseOrderItemDto = {
   purchase_order_id: number;
   drug_id: number;
   batch_id?: number | null;
+  unit_type_id: number;
   quantity_ordered: number;
   quantity_received: number;
   unit_cost: number;
   status: string;
   product_name?: string; // derived from related drug when available
+  unit_type_name?: string;
 };
 
 export type CreatePurchaseOrderItemInput = {
   purchase_order_id: number;
   drug_id: number;
+  unit_type_id: number;
   quantity_ordered: number;
   quantity_received?: number; // defaults 0
   unit_cost: number;
@@ -51,6 +54,7 @@ export type CreatePurchaseOrderItemInput = {
 export type UpdatePurchaseOrderItemInput = {
   drug_id: number;
   batch_id?: number | null;
+  unit_type_id?: number;
   quantity_ordered: number;
   quantity_received: number;
   unit_cost: number;

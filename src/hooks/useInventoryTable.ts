@@ -19,6 +19,8 @@ export interface InventoryRow {
   unitPrice: string;
   purchaseDate: string;
   supplier: string;
+  unitTypeId?: number;
+  unitTypeName?: string;
   transactionHistory: Array<{
     date: string;
     time: string;
@@ -29,7 +31,7 @@ export interface InventoryRow {
   // Original data for editing
   drugId: number;
   supplierId: number;
-  manufactureDate: string;
+  manufactureDate?: string;
   unitCost: number;
   currentQty: number;
   batchNumberValue?: string; // Original batchNumber from API (for editing)
@@ -108,10 +110,12 @@ export function useInventoryTable() {
         supplierId: item.supplierId,
         manufactureDate: item.manufactureDate
           ? new Date(item.manufactureDate).toISOString().split('T')[0]
-          : '',
+          : undefined,
         unitCost: item.unitCost || 0,
         currentQty: item.currentQty || 0,
         batchNumberValue: item.batchNumber, // Store original batchNumber for editing
+        unitTypeId: item.unitTypeId,
+        unitTypeName: item.unitTypeName,
       }));
 
       setInventory(mapped);

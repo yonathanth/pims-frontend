@@ -3,7 +3,7 @@ export type BatchDto = {
   batchId: number;
   drugId: number;
   supplierId: number;
-  manufactureDate: string; // YYYY-MM-DD
+  manufactureDate?: string; // YYYY-MM-DD (optional)
   expiryDate: string; // YYYY-MM-DD
   unitCost: number;
   purchaseDate: string; // YYYY-MM-DD
@@ -14,7 +14,8 @@ export type CreateBatchInput = {
   batch_number?: string;
   drug_id: number;
   supplier_id: number;
-  manufacture_date: string;
+  unit_type_id: number;
+  manufacture_date?: string;
   expiry_date: string;
   unit_cost: number;
   unit_price: number;
@@ -31,6 +32,7 @@ export type BatchViewDto = {
   sku: string;
   drug_name: string;
   supplier_name: string;
+  unit_type_name?: string;
 };
 
 export type ListBatchesQuery = {

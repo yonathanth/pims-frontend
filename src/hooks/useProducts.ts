@@ -2,12 +2,17 @@ import { useEffect, useState, useCallback } from 'react';
 import type { ProductItem } from '../data/productData';
 import { listDrugs } from '../api/products';
 
-export function useProducts() {
+type UseProductsConfig = {
+  /** Optional initial page size so combo boxes can request more than 10 rows */
+  initialLimit?: number;
+};
+
+export function useProducts(config?: UseProductsConfig) {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(config?.initialLimit ?? 10);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState<
     'sku' | 'genericName' | 'tradeName' | 'id'

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import GeneralPageLayout from '../components/GeneralPageLayout';
 import SortableTable from '../components/SortableTable';
 import {
@@ -30,7 +30,7 @@ import {
 import { useOrders } from '../hooks/useOrders';
 import { useSuppliers } from '../hooks/useSuppliers';
 import { useProducts } from '../hooks/useProducts';
-import { useCategories } from '../hooks/useCategories';
+import { useUnitTypes, type UnitTypeRow } from '../hooks/useUnitTypes';
 import { useCategoriesSearch } from '../hooks/useCategoriesSearch';
 import { createBatch } from '../api/inventory';
 import { updatePurchaseOrderItem } from '../api/orders';
@@ -56,6 +56,8 @@ type ModalItem = {
   expected: number;
   received: number;
   cancelled: boolean;
+  unitTypeId?: number;
+  unitTypeName?: string;
   // optional linkage
   batchId?: number | null;
 };
@@ -80,8 +82,16 @@ const OrdersPage = () => {
     setStatusFilter,
   } = useOrders();
   const { suppliers } = useSuppliers();
-  const { products, setQ: setProductsQ } = useProducts();
-  const { categories: categoriesList } = useCategories();
+  const {
+    products,
+    setQ: setProductsQ,
+    setPage: setProductsPage,
+  } = useProducts();
+  const {
+    unitTypes,
+    setQ: setUnitTypesSearchTerm,
+    setPage: setUnitTypesPage,
+  } = useUnitTypes();
   const { categories: searchableCategories, searchCategories } =
     useCategoriesSearch();
 
@@ -119,6 +129,7 @@ const OrdersPage = () => {
   const [modalItems, setModalItems] = useState<ModalItem[]>([]);
   const [productToAddId, setProductToAddId] = useState<number | null>(null);
   const [productToAddName, setProductToAddName] = useState<string>('');
+  const [productToAddUnitTypeId, setProductToAddUnitTypeId] = useState<number | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
 
   // Cache of fetched order items for expanded rows
@@ -132,6 +143,7 @@ const OrdersPage = () => {
   const [batchNumber, setBatchNumber] = useState<string>('');
   const [batchDrugId, setBatchDrugId] = useState<number | null>(null);
   const [batchSupplierId, setBatchSupplierId] = useState<number | null>(null);
+  const [batchUnitTypeId, setBatchUnitTypeId] = useState<number | null>(null);
   const [batchPurchaseDate, setBatchPurchaseDate] = useState<string>('');
   const [batchManufactureDate, setBatchManufactureDate] = useState<string>('');
   const [batchExpiryDate, setBatchExpiryDate] = useState<string>('');
@@ -143,6 +155,22 @@ const OrdersPage = () => {
   const [batchSelectedLocations, setBatchSelectedLocations] = useState<
     SelectedLocation[]
   >([]);
+
+  const handleOrderProductSearch = useCallback(
+    (searchValue: string) => {
+      setProductsQ(searchValue);
+      setProductsPage(1);
+    },
+    [setProductsQ, setProductsPage],
+  );
+
+  const handleOrderUnitTypeSearch = useCallback(
+    (searchValue: string) => {
+      setUnitTypesSearchTerm(searchValue);
+      setUnitTypesPage(1);
+    },
+    [setUnitTypesSearchTerm, setUnitTypesPage],
+  );
 
   // Helpers
   const resetForm = () => {
@@ -199,21 +227,28 @@ const OrdersPage = () => {
   };
 
   const addItemToModal = () => {
-    if (!productToAddId) return;
+    if (!productToAddId || !productToAddUnitTypeId) {
+      setModalError('Please select both product and unit type');
+      return;
+    }
     // prevent duplicate by productId
     if (modalItems.some((mi) => mi.productId === productToAddId)) return;
+    const selectedUnitType = unitTypes.find(ut => Number(ut.id) === productToAddUnitTypeId);
     setModalItems((prev) => [
       ...prev,
       {
         id: `${Date.now()}`,
         productId: productToAddId,
         productName: productToAddName,
+        unitTypeId: productToAddUnitTypeId,
+        unitTypeName: selectedUnitType?.name,
         expected: 0,
         received: 0,
         cancelled: false,
       },
     ]);
     setProductToAddId(null);
+    setProductToAddUnitTypeId(null);
     setProductToAddName('');
   };
   const updateModalItem = (id: string, updater: (mi: ModalItem) => ModalItem) =>
@@ -268,9 +303,10 @@ const OrdersPage = () => {
         expected_date,
         status: computedStatus,
         items: modalItems
-          .filter((item) => item.productId) // Only include items with valid product IDs
+          .filter((item) => item.productId && item.unitTypeId) // Only include items with valid product IDs and unit types
           .map((item) => ({
             drug_id: Number(item.productId),
+            unit_type_id: Number(item.unitTypeId),
             quantity_ordered: item.expected,
             quantity_received: item.received,
             unit_cost: 0,
@@ -327,8 +363,15 @@ const OrdersPage = () => {
         const existing = byDrug.get(drugId);
         if (existing) {
           // Always send explicit status derived from fields to clear stale cancelled state
+          // Ensure unit_type_id is always provided - use item.unitTypeId if set, otherwise fallback to existing
+          const unitTypeIdToUse = item.unitTypeId ?? existing.unit_type_id;
+          if (!unitTypeIdToUse) {
+            setModalError(`Unit type is required for ${item.productName}`);
+            return;
+          }
           await api.updatePurchaseOrderItem(existing.purchase_order_item_id, {
             drug_id: drugId,
+            unit_type_id: Number(unitTypeIdToUse),
             quantity_ordered: item.expected,
             quantity_received: item.received,
             unit_cost: 0,
@@ -342,9 +385,14 @@ const OrdersPage = () => {
           });
           existingIds.delete(existing.purchase_order_item_id);
         } else {
+          if (!item.unitTypeId) {
+            setModalError(`Unit type is required for ${item.productName}`);
+            return;
+          }
           await api.createPurchaseOrderItem({
             purchase_order_id: editingOrderId,
             drug_id: drugId,
+            unit_type_id: Number(item.unitTypeId),
             quantity_ordered: item.expected,
             quantity_received: item.received,
             unit_cost: 0,
@@ -387,7 +435,7 @@ const OrdersPage = () => {
                 (item as any).generic_name,
                 (item as any).trade_name,
               ) ||
-              `Drug ID: ${item.drug_id}`;
+            `Drug ID: ${item.drug_id}`;
           return {
             id: `${editingOrderId}-${idx}`,
             productId: Number(item.drug_id),
@@ -396,6 +444,8 @@ const OrdersPage = () => {
             received: item.quantity_received || 0,
             cancelled: item.status === 'Cancelled',
             batchId: (item as any).batch_id ?? null,
+            unitTypeId: item.unit_type_id,
+            unitTypeName: item.unit_type_name,
           } as ModalItem;
         });
         setOrderItemsMap((prev) => ({
@@ -434,6 +484,8 @@ const OrdersPage = () => {
     const supplierId = selSupplier ? Number((selSupplier as any).id) : null;
     setBatchSupplierId(supplierId);
     setBatchDrugId(Number(it.productId));
+    // Prefill unit type from order item if available
+    setBatchUnitTypeId(it.unitTypeId ? Number(it.unitTypeId) : null);
     // Use order.createdDate (we store a formatted date string in rowData.orderDate)
     setBatchPurchaseDate(rowData.orderDate);
     setBatchCurrentQty(Number(it.received || 0));
@@ -449,14 +501,14 @@ const OrdersPage = () => {
 
   const submitCreateBatch = async (orderRow: OrderItem) => {
     try {
-      if (!batchDrugId || !batchSupplierId) {
-        setBatchModalError('Supplier and drug are required');
+      if (!batchDrugId || !batchSupplierId || !batchUnitTypeId) {
+        setBatchModalError('Supplier, drug, and unit type are required');
         return;
       }
-      // Validate dates
-      if (!batchManufactureDate || !batchExpiryDate || !batchPurchaseDate) {
+      // Validate dates (manufacture date is optional)
+      if (!batchExpiryDate || !batchPurchaseDate) {
         setBatchModalError(
-          'Please provide manufacture, expiry and purchase dates',
+          'Please provide expiry and purchase dates',
         );
         return;
       }
@@ -465,7 +517,8 @@ const OrdersPage = () => {
         batch_number: batchNumber || undefined,
         drug_id: batchDrugId,
         supplier_id: batchSupplierId,
-        manufacture_date: batchManufactureDate,
+        unit_type_id: batchUnitTypeId,
+        manufacture_date: batchManufactureDate || undefined,
         expiry_date: batchExpiryDate,
         unit_price: batchUnitPrice,
         unit_cost: batchUnitCost,
@@ -521,7 +574,7 @@ const OrdersPage = () => {
                 (item as any).generic_name,
                 (item as any).trade_name,
               ) ||
-              `Drug ID: ${item.drug_id}`;
+            `Drug ID: ${item.drug_id}`;
           return {
             id: `${orderRow.orderId}-${idx}`,
             productId: Number(item.drug_id),
@@ -530,6 +583,8 @@ const OrdersPage = () => {
             received: item.quantity_received || 0,
             cancelled: item.status === 'Cancelled',
             batchId: (item as any).batch_id ?? null,
+            unitTypeId: item.unit_type_id,
+            unitTypeName: item.unit_type_name,
           } as ModalItem;
         });
         setOrderItemsMap((prev) => ({ ...prev, [orderRow.orderId]: mapped }));
@@ -568,6 +623,8 @@ const OrdersPage = () => {
                 received: item.quantity_received || 0,
                 cancelled: item.status === 'Cancelled',
                 batchId: (item as any).batch_id ?? null,
+                unitTypeId: item.unit_type_id,
+                unitTypeName: item.unit_type_name,
               } as ModalItem;
             });
             setOrderItemsMap((prev) => ({
@@ -620,6 +677,8 @@ const OrdersPage = () => {
                         received: item.quantity_received || 0,
                         cancelled: item.status === 'Cancelled',
                         batchId: (item as any).batch_id ?? null,
+                        unitTypeId: item.unit_type_id,
+                        unitTypeName: item.unit_type_name,
                       } as ModalItem;
                     });
                     setOrderItemsMap((prev) => ({
@@ -643,6 +702,7 @@ const OrdersPage = () => {
             <thead>
               <tr style={{ backgroundColor: 'var(--cds-layer-accent)' }}>
                 <th className="px-4 py-2 text-left font-medium">Product</th>
+                <th className="px-4 py-2 text-left font-medium">Unit Type</th>
                 <th className="px-4 py-2 text-left font-medium">Status</th>
                 <th className="px-4 py-2 text-left font-medium">Quantity</th>
                 <th className="px-4 py-2 text-left font-medium">
@@ -653,13 +713,13 @@ const OrdersPage = () => {
             <tbody>
               {!items ? (
                 <tr>
-                  <td className="px-4 py-4" colSpan={4}>
+                  <td className="px-4 py-4" colSpan={5}>
                     Loading items...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-4" colSpan={4}>
+                  <td className="px-4 py-4" colSpan={5}>
                     No items found
                   </td>
                 </tr>
@@ -671,9 +731,10 @@ const OrdersPage = () => {
                     onClick={() => handleOpenBatchModal(rowData, it)}
                   >
                     <td className="px-4 py-2">{it.productName}</td>
+                    <td className="px-4 py-2">{it.unitTypeName || 'N/A'}</td>
                     <td className="px-4 py-2">{computeStatus(it)}</td>
-                    <td className="px-4 py-2">{it.expected}</td>
-                    <td className="px-4 py-2">{it.received}</td>
+                    <td className="px-4 py-2">{it.unitTypeName ? `${it.expected} ${it.unitTypeName}` : it.expected}</td>
+                    <td className="px-4 py-2">{it.unitTypeName ? `${it.received} ${it.unitTypeName}` : it.received}</td>
                   </tr>
                 ))
               )}
@@ -763,7 +824,7 @@ const OrdersPage = () => {
     }
     try {
       const api = await import('../api/products');
-      const selectedCategory = categoriesList.find(
+      const selectedCategory = searchableCategories.find(
         (c) => c.name === newProductCategory,
       );
       const productData: any = {
@@ -885,13 +946,32 @@ const OrdersPage = () => {
               }))}
               itemToString={(it: any) => (it ? it.text : '')}
               selectedItem={null}
-              onInputChange={(text: string) => setProductsQ(text)}
+              onInputChange={(text: string) => handleOrderProductSearch(text)}
               onChange={({ selectedItem }: any) => {
                 if (!selectedItem) return;
                 setProductToAddId(Number(selectedItem.value));
                 setProductToAddName(String(selectedItem.text));
               }}
               placeholder="Search products..."
+              titleText=""
+            />
+            <ComboBox
+              id="unitTypeToAdd"
+              items={unitTypes
+                .filter((ut) => ut.isActive)
+                .map((ut) => ({
+                  id: Number(ut.id),
+                  text: ut.name,
+                  value: Number(ut.id),
+                }))}
+              itemToString={(it: any) => (it ? it.text : '')}
+              selectedItem={null}
+              onInputChange={(text: string) => handleOrderUnitTypeSearch(text)}
+              onChange={({ selectedItem }: any) => {
+                if (!selectedItem) return;
+                setProductToAddUnitTypeId(Number(selectedItem.value));
+              }}
+              placeholder="Select unit type..."
               titleText=""
             />
             <Button size="sm" kind="secondary" onClick={addItemToModal}>
@@ -904,6 +984,7 @@ const OrdersPage = () => {
             onChangeItem={updateModalItem}
             onRemoveItem={removeModalItem}
             mode="add"
+            unitTypes={unitTypes}
           />
         </div>
       </GenericModal>
@@ -954,18 +1035,37 @@ const OrdersPage = () => {
               id="productToAddEdit"
               items={(products || []).slice(0, 50).map((p) => ({
                 id: Number(p.id),
-                text: (p as any).name,
+                text: formatDrugName((p as any).name, (p as any).tradeName),
                 value: Number(p.id),
               }))}
               itemToString={(it: any) => (it ? it.text : '')}
               selectedItem={null}
-              onInputChange={(text: string) => setProductsQ(text)}
+              onInputChange={(text: string) => handleOrderProductSearch(text)}
               onChange={({ selectedItem }: any) => {
                 if (!selectedItem) return;
                 setProductToAddId(Number(selectedItem.value));
                 setProductToAddName(String(selectedItem.text));
               }}
               placeholder="Search products..."
+              titleText=""
+            />
+            <ComboBox
+              id="unitTypeToAddEdit"
+              items={unitTypes
+                .filter((ut) => ut.isActive)
+                .map((ut) => ({
+                  id: Number(ut.id),
+                  text: ut.name,
+                  value: Number(ut.id),
+                }))}
+              itemToString={(it: any) => (it ? it.text : '')}
+              selectedItem={null}
+              onInputChange={(text: string) => handleOrderUnitTypeSearch(text)}
+              onChange={({ selectedItem }: any) => {
+                if (!selectedItem) return;
+                setProductToAddUnitTypeId(Number(selectedItem.value));
+              }}
+              placeholder="Select unit type..."
               titleText=""
             />
             <Button size="sm" kind="secondary" onClick={addItemToModal}>
@@ -978,6 +1078,7 @@ const OrdersPage = () => {
             onChangeItem={updateModalItem}
             onRemoveItem={removeModalItem}
             mode="edit"
+            unitTypes={unitTypes}
           />
         </div>
       </GenericModal>
@@ -987,7 +1088,8 @@ const OrdersPage = () => {
         isOpen={showBatchModal}
         onClose={() => {
           setShowBatchModal(false);
-      setBatchNumber('');
+          setBatchNumber('');
+          setBatchUnitTypeId(null);
           setBatchModalError(null);
         }}
         onSubmit={() => {
@@ -1019,6 +1121,22 @@ const OrdersPage = () => {
             required: true,
           },
           {
+            key: 'unitTypeId',
+            label: 'Unit Type',
+            type: 'searchable-combobox',
+            value: batchUnitTypeId ? String(batchUnitTypeId) : '',
+            onChange: (v) => setBatchUnitTypeId(Number(v)),
+            options: unitTypes
+              .filter((ut) => ut.isActive)
+              .map((ut) => ({
+                text: ut.name,
+                value: String(ut.id),
+              })),
+            required: true,
+            placeholder: 'Search unit types...',
+            onSearch: handleOrderUnitTypeSearch,
+          },
+          {
             key: 'batchNumber',
             label: 'Batch Number (Optional)',
             type: 'text',
@@ -1038,11 +1156,11 @@ const OrdersPage = () => {
           },
           {
             key: 'manufactureDate',
-            label: 'Manufacture Date',
+            label: 'Manufacture Date (Optional)',
             type: 'date',
             value: batchManufactureDate,
             onChange: (v) => setBatchManufactureDate(String(v)),
-            required: true,
+            required: false,
           },
           {
             key: 'expiryDate',
@@ -1241,13 +1359,14 @@ const OrdersPage = () => {
 export default OrdersPage;
 
 // Reusable items table for both Add and Edit modals
-type ItemsTableProps = {
+interface ItemsTableProps {
   items: ModalItem[];
   computeStatus: (mi: ModalItem) => string;
   onChangeItem: (id: string, updater: (mi: ModalItem) => ModalItem) => void;
   onRemoveItem: (id: string) => void;
   mode: 'add' | 'edit';
-};
+  unitTypes: UnitTypeRow[];
+}
 
 const ItemsTable = ({
   items,
@@ -1255,21 +1374,28 @@ const ItemsTable = ({
   onChangeItem,
   onRemoveItem,
   mode,
+  unitTypes,
 }: ItemsTableProps) => {
   const baseHeaders = [
     { key: 'product', header: 'Product' },
+    { key: 'unitType', header: 'Unit Type' },
     { key: 'status', header: 'Status' },
     { key: 'expected', header: 'Expected' },
     { key: 'received', header: 'Received' },
   ];
   const headers =
     mode === 'edit'
-      ? [...baseHeaders, { key: 'cancelled', header: 'Cancelled' }]
+      ? [
+          ...baseHeaders,
+          { key: 'cancelled', header: 'Cancelled' },
+          { key: 'actions', header: '' },
+        ]
       : [...baseHeaders, { key: 'actions', header: '' }];
 
   const rows = items.map((mi) => ({
     id: mi.id,
     product: mi.productName,
+    unitType: mi.unitTypeName || 'N/A',
     status: computeStatus(mi),
     expected: String(mi.expected),
     received: String(mi.received),
@@ -1313,8 +1439,49 @@ const ItemsTable = ({
                         }
                       />
                     </TableCell>
+                    <TableCell>
+                      <ComboBox
+                        id={`unitType-${mi.id}`}
+                        items={unitTypes
+                          .filter((ut: UnitTypeRow) => ut.isActive)
+                          .map((ut: UnitTypeRow) => ({
+                            id: Number(ut.id),
+                            text: ut.name,
+                            value: Number(ut.id),
+                          }))}
+                        itemToString={(it: any) => (it ? it.text : '')}
+                        selectedItem={
+                          mi.unitTypeId
+                            ? {
+                                id: mi.unitTypeId,
+                                text: mi.unitTypeName || '',
+                                value: mi.unitTypeId,
+                              }
+                            : null
+                        }
+                        onChange={({ selectedItem }: any) => {
+                          if (selectedItem) {
+                            onChangeItem(mi.id, (prev) => ({
+                              ...prev,
+                              unitTypeId: Number(selectedItem.value),
+                              unitTypeName: selectedItem.text,
+                            }));
+                          } else {
+                            // Clear unit type if deselected
+                            onChangeItem(mi.id, (prev) => ({
+                              ...prev,
+                              unitTypeId: undefined,
+                              unitTypeName: undefined,
+                            }));
+                          }
+                        }}
+                        placeholder="Select unit type..."
+                        titleText=""
+                      />
+                    </TableCell>
                     <TableCell>{computeStatus(mi)}</TableCell>
                     <TableCell>
+                      <div className="flex items-center gap-2">
                       <NumberInput
                         id={`exp-${mi.id}`}
                         hideLabel
@@ -1328,8 +1495,13 @@ const ItemsTable = ({
                         min={0}
                         size="sm"
                       />
+                        {mi.unitTypeName && (
+                          <span className="text-sm text-gray-600">{mi.unitTypeName}</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
+                      <div className="flex items-center gap-2">
                       <NumberInput
                         id={`rec-${mi.id}`}
                         hideLabel
@@ -1346,8 +1518,12 @@ const ItemsTable = ({
                         min={0}
                         size="sm"
                       />
+                        {mi.unitTypeName && (
+                          <span className="text-sm text-gray-600">{mi.unitTypeName}</span>
+                        )}
+                      </div>
                     </TableCell>
-                    {mode === 'edit' ? (
+                    {mode === 'edit' && (
                       <TableCell>
                         <Checkbox
                           id={`can-${mi.id}`}
@@ -1361,17 +1537,16 @@ const ItemsTable = ({
                           }
                         />
                       </TableCell>
-                    ) : (
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          kind="ghost"
-                          onClick={() => onRemoveItem(mi.id)}
-                        >
-                          ×
-                        </Button>
-                      </TableCell>
                     )}
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        kind="ghost"
+                        onClick={() => onRemoveItem(mi.id)}
+                      >
+                        ×
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}

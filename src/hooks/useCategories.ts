@@ -17,12 +17,16 @@ export interface CategoryRow {
 const truncate = (text: string, max = 120) =>
   text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
 
-export function useCategories() {
+export interface UseCategoriesConfig {
+  initialLimit?: number;
+}
+
+export function useCategories(config?: UseCategoriesConfig) {
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(config?.initialLimit ?? 10);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'id'>('id');
   const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');

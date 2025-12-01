@@ -1,10 +1,12 @@
-import { Dropdown, DatePicker, DatePickerInput, NumberInput } from "@carbon/react";
+import { Dropdown, DatePicker, DatePickerInput, NumberInput, Button } from "@carbon/react";
+import { Upload } from "@carbon/icons-react";
 import SummaryCards from "./components/SummaryCards.tsx";
 import AnalyticsTabs from "./components/AnalyticsTabs.tsx";
 import GeneralPageLayout from "../../components/GeneralPageLayout";
 import { useAnalytics } from "../../hooks/useAnalytics";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { AnalyticsQuery } from "../../api/analytics";
+import { getUploadStatus, triggerUpload, type AnalyticsUploadStatus } from "../../api/analytics";
 const Analytics = () => {
   // local filter state
   const [timeFilter, setTimeFilter] = useState<"daily" | "monthly" | "yearly" | "custom" | undefined>(undefined);
@@ -28,6 +30,47 @@ const Analytics = () => {
   }, [timeFilter, dateRange, lowStockThreshold, topPerformersSort, topSuppliersSort]);
 
   const { data: analytics, loading } = useAnalytics(query);
+  const [uploadStatus, setUploadStatus] = useState<AnalyticsUploadStatus | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+
+  // Fetch upload status on mount and periodically
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const status = await getUploadStatus();
+        setUploadStatus(status);
+      } catch (error) {
+        console.error('Failed to fetch upload status:', error);
+      }
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleTriggerUpload = async () => {
+    setUploading(true);
+    setUploadMessage(null);
+    try {
+      const result = await triggerUpload(false);
+      setUploadStatus(result.status);
+      setUploadMessage(result.message || `Upload ${result.outcome}`);
+      // Refresh status after a short delay
+      setTimeout(async () => {
+        try {
+          const status = await getUploadStatus();
+          setUploadStatus(status);
+        } catch (error) {
+          console.error('Failed to refresh upload status:', error);
+        }
+      }, 2000);
+    } catch (error: any) {
+      setUploadMessage(error?.message || 'Failed to trigger upload');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Transform backend metrics to match existing UI format
   const summaryData = analytics?.metrics?.map(metric => ({
@@ -35,6 +78,17 @@ const Analytics = () => {
     value: String(metric.value),
     trend: metric.trend_up ? "up" as const : "down" as const
   })) || [];
+
+  // Format last updated time
+  const formatLastUpdated = (timestamp: string | null | undefined): string => {
+    if (!timestamp) return 'Never';
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleString();
+    } catch {
+      return 'Invalid date';
+    }
+  };
 
   return (
     <GeneralPageLayout
@@ -44,11 +98,38 @@ const Analytics = () => {
       ]}
       showExportButton={false}
     >
-      <div>
-        <h1 className="text-2xl px-6 font-semibold">Analytics</h1>
-        <p className="text-sm text-gray-600 px-6">
-          Track sales, inventory, and other key insights
-        </p>
+      <div className="flex justify-between items-start px-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Analytics</h1>
+          <p className="text-sm text-gray-600">
+            Track sales, inventory, and other key insights
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <Button
+            kind="primary"
+            size="md"
+            renderIcon={Upload}
+            onClick={handleTriggerUpload}
+            disabled={uploading || uploadStatus?.running}
+          >
+            {uploading || uploadStatus?.running ? 'Uploading...' : 'Upload Analytics'}
+          </Button>
+          <div className="text-xs text-gray-500 text-right">
+            <div>Last successful upload: {formatLastUpdated(uploadStatus?.lastSuccessAt)}</div>
+            {uploadStatus?.lastAttemptAt && uploadStatus?.lastAttemptAt !== uploadStatus?.lastSuccessAt && (
+              <div className="text-gray-400">Last attempt: {formatLastUpdated(uploadStatus?.lastAttemptAt)}</div>
+            )}
+            {uploadStatus?.lastError && (
+              <div className="text-red-600 mt-1">Error: {uploadStatus.lastError}</div>
+            )}
+            {uploadMessage && (
+              <div className={`mt-1 ${uploadStatus?.lastError ? 'text-red-600' : 'text-green-600'}`}>
+                {uploadMessage}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
 

@@ -16,6 +16,7 @@ import SuppliersPage from './pages/SuppliersPage';
 import EmployeesPage from './pages/EmployeesPage';
 import ProductsPage from './pages/ProductsPage';
 import CategoriesPage from './pages/CategoriesPage';
+import UnitTypesPage from './pages/UnitTypesPage';
 import LocationsPage from './pages/LocationsPage';
 import OrdersPage from './pages/OrdersPage';
 import ReportGenerationPage from './pages/ReportGenerationPage';
@@ -179,7 +180,9 @@ export default function AppRouter() {
         <Route
           path="/dashboard/transactions"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <ProtectedRoute
+              allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST']}
+            >
               <TransactionsPage />
             </ProtectedRoute>
           }
@@ -199,6 +202,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST']}>
               <CategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/unit-types"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST']}>
+              <UnitTypesPage />
             </ProtectedRoute>
           }
         />

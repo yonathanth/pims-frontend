@@ -20,6 +20,7 @@ import GenericModal, { type FormField } from '../../../components/GenericModal';
 import { useInventoryTable } from '../../../hooks/useInventoryTable';
 import { useProducts } from '../../../hooks/useProducts';
 import { useSuppliers } from '../../../hooks/useSuppliers';
+import { useUnitTypes } from '../../../hooks/useUnitTypes';
 import { useBatchLocations } from '../../../hooks/useBatchLocations';
 import { useBatchTransactions } from '../../../hooks/useBatchTransactions';
 import {
@@ -70,7 +71,12 @@ const InventoryList = () => {
   // Form state
   const [batchNumber, setBatchNumber] = useState('');
   const [selectedDrug, setSelectedDrug] = useState('');
+  const [selectedDrugOption, setSelectedDrugOption] = useState<{
+    text: string;
+    value: string;
+  } | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [selectedUnitType, setSelectedUnitType] = useState('');
   const [manufactureDate, setManufactureDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [unitCost, setUnitCost] = useState('');
@@ -109,8 +115,18 @@ const InventoryList = () => {
   } = useInventoryTable();
 
   // For drug/supplier combo boxes
-  const { products, refetch: refetchProducts } = useProducts();
-  const { suppliers, refetch: refetchSuppliers } = useSuppliers();
+  const { products, setQ: setProductSearchTerm, setPage: setProductsPage } =
+    useProducts({ initialLimit: 10 });
+  const {
+    suppliers,
+    setQ: setSupplierSearchTerm,
+    setPage: setSuppliersPage,
+  } = useSuppliers();
+  const {
+    unitTypes,
+    setQ: setUnitTypeSearchTerm,
+    setPage: setUnitTypesPage,
+  } = useUnitTypes();
 
   // For expanded row data - track per batch
   const [expandedRowData, setExpandedRowData] = useState<{
@@ -132,10 +148,69 @@ const InventoryList = () => {
   const { fetchLocationsByBatch } = useBatchLocations();
   const { fetchTransactionsByBatch } = useBatchTransactions();
 
+  const resetProductSearch = useCallback(() => {
+    setProductSearchTerm('');
+    setProductsPage(1);
+  }, [setProductSearchTerm, setProductsPage]);
+
+  const resetSupplierSearch = useCallback(() => {
+    setSupplierSearchTerm('');
+    setSuppliersPage(1);
+  }, [setSupplierSearchTerm, setSuppliersPage]);
+
+  const resetUnitTypeSearch = useCallback(() => {
+    setUnitTypeSearchTerm('');
+    setUnitTypesPage(1);
+  }, [setUnitTypeSearchTerm, setUnitTypesPage]);
+
+  const handleDrugSearch = useCallback(
+    (searchValue: string) => {
+      setProductSearchTerm(searchValue);
+      setProductsPage(1);
+    },
+    [setProductSearchTerm, setProductsPage],
+  );
+
+  const handleSupplierSearch = useCallback(
+    (searchValue: string) => {
+      setSupplierSearchTerm(searchValue);
+      setSuppliersPage(1);
+    },
+    [setSupplierSearchTerm, setSuppliersPage],
+  );
+
+  const handleUnitTypeSearch = useCallback(
+    (searchValue: string) => {
+      setUnitTypeSearchTerm(searchValue);
+      setUnitTypesPage(1);
+    },
+    [setUnitTypeSearchTerm, setUnitTypesPage],
+  );
+
+  // Keep the selected drug option in the list even if it falls off the current page
+  useEffect(() => {
+    if (!selectedDrug) {
+      setSelectedDrugOption(null);
+      return;
+    }
+    const drug = products.find(
+      (p) => String(p.id) === String(selectedDrug),
+    );
+    if (!drug) {
+      // Keep whatever was previously selected if it is no longer in the current page
+      return;
+    }
+    setSelectedDrugOption({
+      text: drug.tradeName ? `${drug.name} (${drug.tradeName})` : drug.name,
+      value: String(drug.id),
+    });
+  }, [selectedDrug, products]);
+
   const resetForm = () => {
     setBatchNumber('');
     setSelectedDrug('');
     setSelectedSupplier('');
+    setSelectedUnitType('');
     setManufactureDate('');
     setExpiryDate('');
     setUnitCost('');
@@ -144,6 +219,9 @@ const InventoryList = () => {
     setCurrentQty('');
     setLowStockThreshold('');
     setSelectedLocations([]);
+    resetProductSearch();
+    resetSupplierSearch();
+    resetUnitTypeSearch();
   };
 
   const resetTransactionForm = () => {
@@ -164,21 +242,18 @@ const InventoryList = () => {
 
   const handleAddBatch = async () => {
     try {
-      const drugItem = products.find(
-        (p) => String(p.id) === String(selectedDrug),
-      );
-      const supplierItem = suppliers.find((s) => s.name === selectedSupplier);
-
-      if (!drugItem || !supplierItem) {
-        setShowError('Please select valid drug and supplier');
+      // Ensure required selections are present (ids stored in state)
+      if (!selectedDrug || !selectedSupplier || !selectedUnitType) {
+        setShowError('Please select valid drug, supplier, and unit type');
         return;
       }
 
       const res = await addBatch({
         batch_number: batchNumber || undefined,
-        drug_id: Number(drugItem.id),
-        supplier_id: Number(supplierItem.id),
-        manufacture_date: manufactureDate,
+        drug_id: Number(selectedDrug),
+        supplier_id: Number(selectedSupplier),
+        unit_type_id: Number(selectedUnitType),
+        manufacture_date: manufactureDate || undefined,
         expiry_date: expiryDate,
         unit_cost: parseFloat(unitCost),
         unit_price: parseFloat(unitPrice),
@@ -212,21 +287,29 @@ const InventoryList = () => {
     if (!editBatch) return;
 
     try {
-      const drugItem = products.find(
-        (p) => String(p.id) === String(editBatch.drugId),
-      );
-      const supplierItem = suppliers.find((s) => s.name === editBatch.supplier);
+      // Prefer explicit ids from editBatch; fall back to current selection for unit type
+      const drugId = editBatch.drugId ?? editBatch.drug_id ?? editBatch.drugID;
+      const supplierId =
+        editBatch.supplierId ??
+        editBatch.supplier_id ??
+        editBatch.supplierID;
+      const unitTypeId =
+        selectedUnitType ||
+        editBatch.unitTypeId ||
+        editBatch.unit_type_id ||
+        editBatch.unitTypeID;
 
-      if (!drugItem || !supplierItem) {
-        setShowError('Please select valid drug and supplier');
+      if (!drugId || !supplierId || !unitTypeId) {
+        setShowError('Please select valid drug, supplier, and unit type');
         return;
       }
 
       const res = await updateBatch(editBatch.id, {
         batch_number: batchNumber || undefined,
-        drug_id: Number(drugItem.id),
-        supplier_id: Number(supplierItem.id),
-        manufacture_date: editBatch.manufactureDate,
+        drug_id: Number(drugId),
+        supplier_id: Number(supplierId),
+        unit_type_id: Number(unitTypeId),
+        manufacture_date: editBatch.manufactureDate || undefined,
         expiry_date: editBatch.expiryDate,
         unit_cost: editBatch.unitCost,
         unit_price: editBatch.unitPrice,
@@ -495,7 +578,11 @@ const InventoryList = () => {
             <div className="text-sm font-medium text-gray-600 mb-1">
               Total On Hand
             </div>
-            <div className="text-2xl font-bold">{rowData.quantity}</div>
+            <div className="text-2xl font-bold">
+              {rowData.unitTypeName
+                ? `${rowData.quantity} ${rowData.unitTypeName}`
+                : rowData.quantity}
+            </div>
           </div>
 
           {/* Unit Cost Card */}
@@ -625,6 +712,12 @@ const InventoryList = () => {
           setShowError(null);
           setEditBatch({ ...row });
           setBatchNumber(row.batchNumberValue || row.batchNumber || '');
+          // Set unit type by name if available, otherwise by ID
+          const unitTypeName = row.unitTypeName;
+          const unitTypeOption = unitTypeName 
+            ? unitTypeOptions.find(ut => ut.text === unitTypeName)
+            : null;
+          setSelectedUnitType(unitTypeOption ? unitTypeOption.value : (row.unitTypeId ? String(row.unitTypeId) : ''));
 
           // Fetch current locations for this batch
           try {
@@ -659,14 +752,30 @@ const InventoryList = () => {
   );
 
   // Format as "genericName (tradeName)" or just "genericName". Use id as value.
-  const drugOptions = products.map((p) => ({
+  const baseDrugOptions = products.map((p) => ({
     text: p.tradeName ? `${p.name} (${p.tradeName})` : p.name,
     value: String(p.id),
   }));
+
+  // Ensure the currently selected drug (by id) is always present in the options
+  const drugOptions = selectedDrugOption
+    ? [
+        selectedDrugOption,
+        ...baseDrugOptions.filter(
+          (opt) => opt.value !== selectedDrugOption.value,
+        ),
+      ]
+    : baseDrugOptions;
   const supplierOptions = suppliers.map((s) => ({
     text: s.name,
-    value: s.name,
+    value: String(s.id),
   }));
+  const unitTypeOptions = unitTypes
+    .filter((ut) => ut.isActive)
+    .map((ut) => ({
+      text: ut.name,
+      value: String(ut.id),
+    }));
   const stockStatusOptions = [
     { text: 'All', value: 'All' },
     { text: 'In Stock', value: 'In stock' },
@@ -703,7 +812,7 @@ const InventoryList = () => {
       options: drugOptions,
       required: true,
       placeholder: 'Search drugs...',
-      onSearch: () => refetchProducts(),
+      onSearch: handleDrugSearch,
     },
     {
       key: 'supplier',
@@ -714,15 +823,26 @@ const InventoryList = () => {
       options: supplierOptions,
       required: true,
       placeholder: 'Search suppliers...',
-      onSearch: () => refetchSuppliers(),
+      onSearch: handleSupplierSearch,
+    },
+    {
+      key: 'unitType',
+      label: 'Unit Type',
+      type: 'searchable-combobox',
+      value: selectedUnitType,
+      onChange: (value) => setSelectedUnitType(value as string),
+      options: unitTypeOptions,
+      required: true,
+      placeholder: 'Search unit types...',
+      onSearch: handleUnitTypeSearch,
     },
     {
       key: 'manufactureDate',
-      label: 'Manufacture Date',
+      label: 'Manufacture Date (Optional)',
       type: 'date',
       value: manufactureDate,
       onChange: (value) => setManufactureDate(value as string),
-      required: true,
+      required: false,
     },
     {
       key: 'expiryDate',
@@ -799,7 +919,7 @@ const InventoryList = () => {
       label: 'Batch Information',
       type: 'text',
       value: selectedBatchForTransaction
-        ? `${selectedBatchForTransaction.drugName} - Batch #${selectedBatchForTransaction.batchNumber} (Available: ${selectedBatchForTransaction.quantity})`
+        ? `${selectedBatchForTransaction.drugName} - Batch #${selectedBatchForTransaction.batchNumber} (Available: ${selectedBatchForTransaction.unitTypeName ? `${selectedBatchForTransaction.quantity} ${selectedBatchForTransaction.unitTypeName}` : selectedBatchForTransaction.quantity})`
         : '',
       onChange: () => {}, // Read-only
       required: false,
@@ -922,6 +1042,9 @@ const InventoryList = () => {
                     items={[{ text: 'All Drugs', value: '' }, ...drugOptions]}
                     itemToString={(item) => (item ? item.text : '')}
                     initialSelectedItem={{ text: 'All Drugs', value: '' }}
+                    onInputChange={(inputValue: string) =>
+                      handleDrugSearch(inputValue)
+                    }
                     onChange={({ selectedItem }) => {
                       const selectedDrugId = selectedItem?.value || '';
                       if (selectedDrugId) {
@@ -1013,6 +1136,23 @@ const InventoryList = () => {
             return renderActionsMenu(row);
           }
 
+          // Format quantity with unit type
+          if (key === 'quantity') {
+            const qty = (row as any).quantity || 0;
+            const unitType = (row as any).unitTypeName || '';
+            return (
+              <div
+                style={{ cursor: 'pointer' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRowClick(row);
+                }}
+              >
+                {unitType ? `${qty} ${unitType}` : qty}
+              </div>
+            );
+          }
+
           // Make all non-action cells clickable
           return (
             <div
@@ -1089,6 +1229,17 @@ const InventoryList = () => {
                   onChange: () => {}, // Read-only for edit
                 },
                 {
+                  key: 'unitType',
+                  label: 'Unit Type',
+                  type: 'searchable-combobox',
+                  value: selectedUnitType,
+                  onChange: (value) => setSelectedUnitType(value as string),
+                  options: unitTypeOptions,
+                  required: true,
+                  placeholder: 'Search unit types...',
+                  onSearch: handleUnitTypeSearch,
+                },
+                {
                   key: 'batchNumber',
                   label: 'Batch Number (Optional)',
                   type: 'text',
@@ -1100,7 +1251,7 @@ const InventoryList = () => {
                 },
                 {
                   key: 'manufactureDate',
-                  label: 'Manufacture Date',
+                  label: 'Manufacture Date (Optional)',
                   type: 'date',
                   value: editBatch.manufactureDate,
                   onChange: (v) =>
@@ -1108,7 +1259,7 @@ const InventoryList = () => {
                       ...editBatch,
                       manufactureDate: v as string,
                     }),
-                  required: true,
+                  required: false,
                 },
                 {
                   key: 'expiryDate',

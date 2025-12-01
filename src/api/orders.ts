@@ -60,6 +60,7 @@ function mapUpdateOrderPayload(input: UpdatePurchaseOrderInput) {
 function mapCreateItemPayload(input: CreatePurchaseOrderItemInput) {
   return {
     drugId: input.drug_id,
+    unitTypeId: input.unit_type_id,
     quantityOrdered: input.quantity_ordered,
     quantityReceived: input.quantity_received ?? 0,
     unitCost: input.unit_cost,
@@ -71,6 +72,7 @@ function mapUpdateItemPayload(input: UpdatePurchaseOrderItemInput) {
   return {
     drugId: input.drug_id,
     batchId: input.batch_id ?? undefined,
+    unitTypeId: input.unit_type_id,
     quantityOrdered: input.quantity_ordered,
     quantityReceived: input.quantity_received,
     unitCost: input.unit_cost,
@@ -164,11 +166,13 @@ export const listPurchaseOrderItems = async (
       it.purchaseOrderId ?? it.purchase_order_id ?? purchaseOrderId,
     drug_id: it.drugId ?? it.drug_id,
     batch_id: it.batchId ?? it.batch_id ?? null,
+    unit_type_id: it.unitTypeId ?? it.unit_type_id,
     quantity_ordered: it.quantityOrdered ?? it.quantity_ordered,
     quantity_received: it.quantityReceived ?? it.quantity_received ?? 0,
     unit_cost: it.unitCost ?? it.unit_cost ?? 0,
     status: it.status,
     product_name: toProductName(it.drug, it.drugId ?? it.drug_id),
+    unit_type_name: it.unitType?.name ?? it.unit_type_name,
   }));
   return mapped;
 };
@@ -188,11 +192,13 @@ export const createPurchaseOrderItem = async (
     purchase_order_id: it.purchaseOrderId ?? it.purchase_order_id ?? id,
     drug_id: it.drugId ?? it.drug_id,
     batch_id: it.batchId ?? it.batch_id ?? null,
+    unit_type_id: it.unitTypeId ?? it.unit_type_id,
     quantity_ordered: it.quantityOrdered ?? it.quantity_ordered,
     quantity_received: it.quantityReceived ?? it.quantity_received ?? 0,
     unit_cost: it.unitCost ?? it.unit_cost ?? 0,
     status: it.status,
     product_name: toProductName(it.drug, it.drugId ?? it.drug_id),
+    unit_type_name: it.unitType?.name ?? it.unit_type_name,
   };
   return mapped;
 };
@@ -212,11 +218,13 @@ export const updatePurchaseOrderItem = async (
     purchase_order_id: it.purchaseOrderId ?? it.purchase_order_id,
     drug_id: it.drugId ?? it.drug_id,
     batch_id: it.batchId ?? it.batch_id ?? null,
+    unit_type_id: it.unitTypeId ?? it.unit_type_id,
     quantity_ordered: it.quantityOrdered ?? it.quantity_ordered,
     quantity_received: it.quantityReceived ?? it.quantity_received ?? 0,
     unit_cost: it.unitCost ?? it.unit_cost ?? 0,
     status: it.status,
     product_name: toProductName(it.drug, it.drugId ?? it.drug_id),
+    unit_type_name: it.unitType?.name ?? it.unit_type_name,
   };
   return mapped;
 };
@@ -232,6 +240,7 @@ export interface CreatePurchaseOrderWithItemsInput {
   status?: string;
   items: Array<{
     drug_id: number;
+    unit_type_id: number;
     quantity_ordered: number;
     quantity_received?: number;
     unit_cost: number;
@@ -249,6 +258,7 @@ export const createPurchaseOrderWithItems = async (
     status: normalizeStatus(input.status) ?? 'Pending',
     items: input.items.map((item) => ({
       drugId: item.drug_id,
+      unitTypeId: item.unit_type_id,
       quantityOrdered: item.quantity_ordered,
       quantityReceived: item.quantity_received ?? 0,
       unitCost: item.unit_cost,
@@ -274,11 +284,13 @@ export const createPurchaseOrderWithItems = async (
         purchase_order_id: item.purchaseOrderId,
         drug_id: item.drugId,
         batch_id: item.batchId ?? null,
+        unit_type_id: item.unitTypeId ?? item.unit_type_id,
         quantity_ordered: item.quantityOrdered,
         quantity_received: item.quantityReceived ?? 0,
         unit_cost: item.unitCost ?? 0,
         status: item.status,
         product_name: toProductName(item.drug, item.drugId),
+        unit_type_name: item.unitType?.name ?? item.unit_type_name,
       })) ?? [],
   };
 

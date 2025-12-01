@@ -1,4 +1,5 @@
 import React from 'react';
+import { Time } from '@carbon/icons-react';
 
 interface SummaryCardProps {
   summaryData: {
@@ -7,6 +8,20 @@ interface SummaryCardProps {
     trend: 'up' | 'down';
   }[];
 }
+
+// List of metric labels that are affected by time filter
+const TIME_FILTERED_METRICS = [
+  'Total Revenue',
+  'Total Profit',
+  'Total Sales (qty)',
+  'Total Transactions',
+  'Expiring in 30 days',
+  'Expired Items',
+  'Top seller',
+  'Avg Sale Value (per unit)',
+  'Most Ordered Product',
+  'Turnover Rate', // Partially time-filtered (uses soldCurrent)
+];
 
 const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
   const normalizeSign = (p: string) => {
@@ -84,16 +99,39 @@ const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {
     return { displayLabel, main: str };
   };
 
+  const isTimeFiltered = (label: string): boolean => {
+    return TIME_FILTERED_METRICS.some(
+      (metric) => label.toLowerCase().includes(metric.toLowerCase()),
+    );
+  };
+
   return (
     <div className="py-3 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
       {summaryData.map(({ label, value, trend }, index) => {
         const { displayLabel, main, percent } = parseValue(label, value);
+        const timeFiltered = isTimeFiltered(displayLabel);
         return (
           <div
             key={index}
-            className="border p-4 bg-[#f4f4f4] flex flex-col gap-2"
+            className={`border p-4 bg-[#f4f4f4] flex flex-col gap-2 relative ${
+              timeFiltered ? 'border-l-2 border-l-blue-400' : ''
+            }`}
+            title={
+              timeFiltered
+                ? 'This metric is filtered by the selected time range'
+                : 'This metric shows current/all-time data'
+            }
           >
-            <span className="text-sm text-gray-600">{displayLabel}</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">{displayLabel}</span>
+              {timeFiltered && (
+                <Time
+                  size={12}
+                  className="text-blue-500 opacity-60"
+                  title="Filtered by time range"
+                />
+              )}
+            </div>
             <div className="flex items-center justify-between">
               <strong className="text-lg">
                 {main}
