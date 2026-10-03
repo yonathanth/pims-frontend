@@ -15,6 +15,8 @@ import { Add } from '@carbon/icons-react';
 import GenericModal, { type FormField } from '../components/GenericModal';
 import { categoryHeaders } from '../data/categoryData';
 import { useCategories } from '../hooks/useCategories';
+import ExpandedRowList from '../components/ExpandedRowList';
+import { listDrugs } from '../api/products';
 
 const CategoriesPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -109,12 +111,40 @@ const CategoriesPage = () => {
   };
 
   const renderExpandedRow = (rowData: any) => (
-    <div className="p-6">
-      <h4 className="font-semibold text-lg mb-3">Description</h4>
-      <p style={{ color: 'var(--cds-text-secondary)' }}>
-        {rowData.fullDescription}
-      </p>
-    </div>
+    <>
+      {rowData.fullDescription && (
+        <div className="px-6 pt-6">
+          <h4 className="font-semibold text-lg mb-3">Description</h4>
+          <p style={{ color: 'var(--cds-text-secondary)' }}>
+            {rowData.fullDescription}
+          </p>
+        </div>
+      )}
+      <ExpandedRowList<any>
+        title="Products"
+        load={async (page, pageSize) => {
+          const res = await listDrugs({
+            categoryId: Number(rowData.id),
+            page,
+            limit: pageSize,
+            sort_by: 'generic_name',
+            descending: false,
+          } as any);
+          return { items: res.data || [], total: res.meta?.totalItems ?? 0 };
+        }}
+        getKey={(d) => d.id}
+        emptyText="No products in this category."
+        columns={[
+          { header: 'SKU', render: (d) => d.sku },
+          {
+            header: 'Name',
+            render: (d) =>
+              d.tradeName ? `${d.genericName} (${d.tradeName})` : d.genericName,
+          },
+          { header: 'Strength', render: (d) => d.strength || '-' },
+        ]}
+      />
+    </>
   );
 
   const modalFields: FormField[] = [

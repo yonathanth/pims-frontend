@@ -263,7 +263,7 @@ export async function call<T>(
     // General Config endpoints
     list_general_configs: { method: 'GET', endpoint: '/general-configs' },
     create_general_config: { method: 'POST', endpoint: '/general-configs' },
-    update_general_config: { method: 'PUT', endpoint: '/general-configs' },
+    update_general_config: { method: 'PATCH', endpoint: '/general-configs' },
     delete_general_config: { method: 'DELETE', endpoint: '/general-configs' },
 
     // Reports endpoints

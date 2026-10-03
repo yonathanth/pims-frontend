@@ -28,6 +28,9 @@ const ProductsPage = () => {
   const [deleteProductItem, setDeleteProductItem] =
     useState<ProductItem | null>(null);
   const [showError, setShowError] = useState<string | null>(null);
+  // Loading states
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   // Form state
   const [sku, setSku] = useState('');
@@ -67,7 +70,15 @@ const ProductsPage = () => {
   };
 
   const handleAddProduct = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingAdd) {
+      return;
+    }
+
     try {
+      setIsSubmittingAdd(true);
+      setShowError(null);
+
       if (!categoryId) {
         setShowError('Category is required');
         return;
@@ -90,14 +101,29 @@ const ProductsPage = () => {
       setShowError(null);
       resetForm();
       refetch();
-    } catch (err) {
-      setShowError((err as any)?.message || String(err));
+    } catch (err: any) {
+      // Handle duplicate request error from backend
+      if (err?.status === 409 || err?.message?.includes('Duplicate')) {
+        setShowError('This request was already submitted. Please wait a moment.');
+      } else {
+        setShowError(err?.message || String(err));
+      }
+    } finally {
+      setIsSubmittingAdd(false);
     }
   };
 
   const handleEditProduct = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingEdit) {
+      return;
+    }
+
     if (!editProduct) return;
     try {
+      setIsSubmittingEdit(true);
+      setShowError(null);
+
       if (!editProduct.categoryId) {
         setShowError('Category is required');
         return;
@@ -120,8 +146,15 @@ const ProductsPage = () => {
       setShowSuccessMessage(true);
       setShowError(null);
       refetch();
-    } catch (err) {
-      setShowError((err as any)?.message || String(err));
+    } catch (err: any) {
+      // Handle duplicate request error from backend
+      if (err?.status === 409 || err?.message?.includes('Duplicate')) {
+        setShowError('This request was already submitted. Please wait a moment.');
+      } else {
+        setShowError(err?.message || String(err));
+      }
+    } finally {
+      setIsSubmittingEdit(false);
     }
   };
 
@@ -262,6 +295,7 @@ const ProductsPage = () => {
         isOpen={showAddModal}
         onClose={() => {
           setShowAddModal(false);
+          setIsSubmittingAdd(false);
           setShowError(null);
         }}
         onSubmit={handleAddProduct}
@@ -269,6 +303,7 @@ const ProductsPage = () => {
         submitButtonText="Add Product"
         errorMessage={showError}
         onClearError={() => setShowError(null)}
+        isSubmitting={isSubmittingAdd}
         fields={[
           {
             key: 'sku',
@@ -332,6 +367,7 @@ const ProductsPage = () => {
         isOpen={showEditModal}
         onClose={() => {
           setShowEditModal(false);
+          setIsSubmittingEdit(false);
           setShowError(null);
         }}
         onSubmit={handleEditProduct}
@@ -339,6 +375,7 @@ const ProductsPage = () => {
         submitButtonText="Save Changes"
         errorMessage={showError}
         onClearError={() => setShowError(null)}
+        isSubmitting={isSubmittingEdit}
         fields={
           editProduct
             ? [

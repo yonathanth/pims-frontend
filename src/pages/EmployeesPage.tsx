@@ -108,12 +108,14 @@ const EmployeesPage = () => {
         setFormError('Please select a role.');
         return;
       }
-      const finalPassword =
-        password.trim() || Math.random().toString(36).slice(-10);
+      if (!password.trim()) {
+        setFormError('Password is required.');
+        return;
+      }
 
       const payload: CreateUserInput = {
         username,
-        password: finalPassword,
+        password: password.trim(),
         full_name: name,
         email: email.trim() || undefined,
         phone_number: phoneNumber.trim() || undefined,
@@ -143,7 +145,10 @@ const EmployeesPage = () => {
         phone_number: editEmployee.phoneNumber || undefined,
         role: (editEmployee.role as any) || undefined,
       } as unknown as UpdateUserInput;
-      (payload as any).password = editPassword || '';
+      // Only include password if it's provided (not empty)
+      if (editPassword.trim()) {
+        (payload as any).password = editPassword.trim();
+      }
 
       await updateUser(Number(editEmployee.id), payload);
       setShowEditModal(false);
@@ -311,11 +316,12 @@ const EmployeesPage = () => {
           },
           {
             key: 'password',
-            label: 'Initial Password',
-            type: 'text',
+            label: 'Password',
+            type: 'password',
             value: password,
             onChange: (v) => setPassword(v as string),
-            placeholder: 'Leave blank to auto-generate',
+            placeholder: 'Enter password',
+            required: true,
           },
         ]}
       />
@@ -371,10 +377,11 @@ const EmployeesPage = () => {
                 {
                   key: 'password',
                   label: 'New Password',
-                  type: 'text',
+                  type: 'password',
                   value: editPassword,
                   onChange: (v) => setEditPassword(v as string),
                   placeholder: 'Leave blank to keep current password',
+                  required: false,
                 },
                 {
                   key: 'email',

@@ -10,6 +10,7 @@ import type { CreateBatchInput, UpdateBatchInput } from '../types/inventory';
 export interface InventoryRow {
   id: string;
   drugName: string;
+  strength?: string;
   sku: string;
   batchNumber: string;
   expiryDate: string;
@@ -62,7 +63,7 @@ export function useInventoryTable() {
     | 'Low Stock'
     | 'Expired'
     | 'Near-Expiry'
-  >('All');
+  >('In stock');
   const [expiryFrom, setExpiryFrom] = useState<string | undefined>(undefined);
   const [expiryTo, setExpiryTo] = useState<string | undefined>(undefined);
   const [totalItems, setTotalItems] = useState(0);
@@ -91,6 +92,7 @@ export function useInventoryTable() {
         id: String(item.id),
         // Use drugName which now contains tradeName ?? genericName from backend
         drugName: item.drugName || 'Unknown Drug',
+        strength: item.drugStrength,
         sku: item.drugSku || '',
         batchNumber: item.batchNumber || String(item.id), // Use batchNumber if available, fallback to id
         expiryDate: item.expiryDate

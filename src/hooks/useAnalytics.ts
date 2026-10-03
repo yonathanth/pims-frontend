@@ -33,7 +33,6 @@ export function useAnalytics(query: AnalyticsQuery = {}) {
     query.endIso,
     query.dateIso,
     query.rangeDays,
-    query.lowStockThreshold,
     query.topPerformersSort,
     query.topPerformersOrder,
     query.topSuppliersSort,

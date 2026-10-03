@@ -158,7 +158,9 @@ export function useLocations(initialQuery: ListLocationsQuery = {}) {
   const loadBatches = async (id: string) => {
     setLoadingBatches((prev) => ({ ...prev, [id]: true }));
     try {
-      const batches = await listBatchesInLocation(Number(id));
+      const { data: batches } = await listBatchesInLocation(Number(id), {
+        limit: 100,
+      });
       setLocations((prev) =>
         prev.map((l) => (l.id === id ? { ...l, batches } : l)),
       );

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, type ReactNode } from 'react';
+import React, { useState, useMemo, useEffect, type ReactNode } from 'react';
 import {
   Button,
   DataTable,
@@ -41,6 +41,7 @@ export interface SortableTableProps<T extends TableRow = TableRow> {
   searchActions?: ReactNode;
   className?: string;
   renderCell?: (row: T, key: string) => React.ReactNode;
+  getRowClassName?: (row: T) => string | undefined;
   controlled?: {
     page?: number;
     pageSize?: number;
@@ -74,6 +75,7 @@ export const SortableTable = <T extends TableRow = TableRow>({
   searchActions,
   className = '',
   renderCell = undefined,
+  getRowClassName,
   controlled,
   enableSearch = true,
   customFilterSection,
@@ -470,8 +472,15 @@ export const SortableTable = <T extends TableRow = TableRow>({
                     const totalColumns =
                       tableHeaders.length + (expandedRowContent ? 1 : 0) + 1; // expand toggle + checkbox
                     return (
-                      <>
-                        <TableRow {...getRowProps({ row })} key={row.id}>
+                      <React.Fragment key={row.id}>
+                        <TableRow
+                          {...getRowProps({ row })}
+                          className={
+                            rowData && getRowClassName
+                              ? getRowClassName(rowData)
+                              : undefined
+                          }
+                        >
                           {expandedRowContent && (
                             <TableCell className="w-10">
                               <button
@@ -514,7 +523,7 @@ export const SortableTable = <T extends TableRow = TableRow>({
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </TableBody>

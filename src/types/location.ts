@@ -39,12 +39,16 @@ export type ListLocationsQuery = {
   offset?: number;
 };
 
+// Response row of GET /locations/:id/batches
 export type LocationBatchViewDto = {
-  batch_id: number;
-  drug_name: string;
+  batchId: number;
+  batchNumber: string | null;
   sku: string;
-  quantity: number;
-  expiry_date: string; // ISO date
+  drugName: string;
+  strength?: string | null;
+  quantity: number; // quantity held at this location
+  totalQty: number; // batch quantity across all locations
+  expiryDate: string; // ISO date
 };
 
 export type LocationsSummaryDto = {

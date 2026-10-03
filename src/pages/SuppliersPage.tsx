@@ -37,6 +37,9 @@ const SuppliersPage = () => {
   const [deleteSupplierItem, setDeleteSupplierItem] =
     useState<SupplierItem | null>(null);
   const [showError, setShowError] = useState<string | null>(null);
+  // Loading states
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   // Form state
   const [name, setName] = useState('');
@@ -72,7 +75,15 @@ const SuppliersPage = () => {
   };
 
   const handleAddSupplier = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingAdd) {
+      return;
+    }
+
     try {
+      setIsSubmittingAdd(true);
+      setShowError(null);
+
       await createSupplier({
         name,
         contact_name: contactName,
@@ -85,14 +96,29 @@ const SuppliersPage = () => {
       setShowError(null);
       resetForm();
       refetch();
-    } catch (err) {
-      setShowError((err as any)?.message || String(err));
+    } catch (err: any) {
+      // Handle duplicate request error from backend
+      if (err?.status === 409 || err?.message?.includes('Duplicate')) {
+        setShowError('This request was already submitted. Please wait a moment.');
+      } else {
+        setShowError(err?.message || String(err));
+      }
+    } finally {
+      setIsSubmittingAdd(false);
     }
   };
 
   const handleEditSupplier = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingEdit) {
+      return;
+    }
+
     if (!editSupplier) return;
     try {
+      setIsSubmittingEdit(true);
+      setShowError(null);
+
       await updateSupplier(Number(editSupplier.id), {
         name: editSupplier.name,
         contact_name: editSupplier.contactName,
@@ -105,8 +131,15 @@ const SuppliersPage = () => {
       setShowSuccessMessage(true);
       setShowError(null);
       refetch();
-    } catch (err) {
-      setShowError((err as any)?.message || String(err));
+    } catch (err: any) {
+      // Handle duplicate request error from backend
+      if (err?.status === 409 || err?.message?.includes('Duplicate')) {
+        setShowError('This request was already submitted. Please wait a moment.');
+      } else {
+        setShowError(err?.message || String(err));
+      }
+    } finally {
+      setIsSubmittingEdit(false);
     }
   };
 
@@ -241,15 +274,18 @@ const SuppliersPage = () => {
         isOpen={showAddModal}
         onClose={() => {
           setShowAddModal(false);
+          setIsSubmittingAdd(false);
           setShowError(null);
         }}
         onSubmit={handleAddSupplier}
         title="Add Supplier"
+        isSubmitting={isSubmittingAdd}
         submitButtonText="Add Supplier"
         errorMessage={showError}
         onClearError={() => setShowError(null)}
         fields={[
           {
+            
             key: 'name',
             label: 'Name',
             type: 'text',
@@ -304,11 +340,13 @@ const SuppliersPage = () => {
         isOpen={showEditModal}
         onClose={() => {
           setShowEditModal(false);
+          setIsSubmittingEdit(false);
           setShowError(null);
         }}
         onSubmit={handleEditSupplier}
         title="Edit Supplier"
         submitButtonText="Save Changes"
+        isSubmitting={isSubmittingEdit}
         errorMessage={showError}
         onClearError={() => setShowError(null)}
         fields={

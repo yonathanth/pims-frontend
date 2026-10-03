@@ -57,7 +57,7 @@ export const GlobalNotificationProvider: React.FC<
     // Set up new interval for automatic refresh
     intervalRef.current = setInterval(() => {
       refetch();
-    }, 1000); // 1 second
+    }, 30000); // 30 seconds
 
     // Cleanup interval on unmount
     return () => {

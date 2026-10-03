@@ -17,8 +17,9 @@ import {
   Select,
   SelectItem,
   Tag,
+  TextArea,
 } from '@carbon/react';
-import { Renew, Time } from '@carbon/icons-react';
+import { Renew, Time, Checkmark, Close } from '@carbon/icons-react';
 import { usePendingSales } from '../../../hooks/usePendingSales';
 import { useSales } from '../../../hooks/useSales';
 import { PendingSaleCard } from './PendingSaleCard';
@@ -31,21 +32,33 @@ export const PendingSalesStack: React.FC = () => {
     refreshPendingSales,
     approveSale,
     declineSale,
+    approveSaleGroup,
+    declineSaleGroup,
   } = usePendingSales();
 
-  // Memoize the sale cards to prevent unnecessary re-renders
-  const saleCards = useMemo(
-    () =>
-      pendingSales.map((sale) => (
-        <PendingSaleCard
-          key={sale.id}
-          sale={sale}
-          onApprove={approveSale}
-          onDecline={declineSale}
-        />
-      )),
-    [pendingSales, approveSale, declineSale],
-  );
+  // Split into grouped sales (with saleId) and legacy single-line sales (no saleId)
+  const { groupedSaleGroups, legacySales } = useMemo(() => {
+    const groupedMap = new Map<number, typeof pendingSales>();
+    const legacy: typeof pendingSales = [];
+
+    pendingSales.forEach((sale) => {
+      if (sale.saleId) {
+        const existing = groupedMap.get(sale.saleId) ?? [];
+        groupedMap.set(sale.saleId, [...existing, sale]);
+      } else {
+        legacy.push(sale);
+      }
+    });
+
+    const groupedSaleGroups = Array.from(groupedMap.entries()).map(
+      ([saleId, items]) => ({
+        saleId,
+        items,
+      }),
+    );
+
+    return { groupedSaleGroups, legacySales: legacy };
+  }, [pendingSales]);
 
   if (loading && pendingSales.length === 0) {
     return (
@@ -135,7 +148,7 @@ export const PendingSalesStack: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-lg font-semibold">
-            Pending Sales ({pendingSales.length})
+            Pending Sales ({groupedSaleGroups.length + legacySales.length})
           </h2>
           <p className="text-sm" style={{ color: 'var(--cds-text-secondary)' }}>
             Sales waiting for your approval
@@ -155,7 +168,271 @@ export const PendingSalesStack: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto pr-2">{saleCards}</div>
+      <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+        {/* Grouped sales (new flow) */}
+        {groupedSaleGroups.map((group) => (
+          <SaleGroupCard
+            key={group.saleId}
+            saleGroupId={group.saleId}
+            items={group.items}
+            onApproveGroup={approveSaleGroup}
+            onDeclineGroup={declineSaleGroup}
+          />
+        ))}
+
+        {/* Legacy single-line sales (no saleId) */}
+        {legacySales.map((sale) => (
+          <PendingSaleCard
+            key={sale.id}
+            sale={sale}
+            onApprove={approveSale}
+            onDecline={declineSale}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+interface SaleGroupCardProps {
+  saleGroupId: number;
+  items: ReturnType<typeof usePendingSales>['pendingSales'];
+  onApproveGroup: (saleId: number) => Promise<void>;
+  onDeclineGroup: (saleId: number, reason: string) => Promise<void>;
+}
+
+const SaleGroupCard: React.FC<SaleGroupCardProps> = ({
+  saleGroupId,
+  items,
+  onApproveGroup,
+  onDeclineGroup,
+}) => {
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const first = items[0];
+  const totalAmount = items.reduce((sum, i) => sum + i.totalPrice, 0);
+  const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleString();
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-ET', {
+      style: 'currency',
+      currency: 'ETB',
+    }).format(amount);
+
+  const handleApprove = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await onApproveGroup(saleGroupId);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to approve sale group',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!declineReason.trim()) {
+      setError('Please provide a reason for declining');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await onDeclineGroup(saleGroupId, declineReason);
+      setShowDeclineModal(false);
+      setDeclineReason('');
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to decline sale group',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+      style={{
+        backgroundColor: 'var(--cds-field-01)',
+        borderColor: 'var(--cds-border-subtle)',
+      }}
+    >
+      {error && (
+        <InlineNotification
+          kind="error"
+          title="Error"
+          subtitle={error}
+          onClose={() => setError(null)}
+          className="mb-2"
+        />
+      )}
+
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-lg truncate">
+              Sale Group #{saleGroupId}
+            </h3>
+            <span
+              className="px-2 py-0.5 rounded-full text-xs"
+              style={{
+                backgroundColor: 'var(--cds-tag-background-gray)',
+                color: 'var(--cds-text-secondary)',
+              }}
+            >
+              {items.length} item{items.length > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <div
+            className="text-sm mb-2"
+            style={{ color: 'var(--cds-text-secondary)' }}
+          >
+            <span className="font-medium">Customer:</span>{' '}
+            {first.customerName}
+          </div>
+
+          <div className="text-sm mb-2">
+            <span className="font-medium">Total Qty:</span> {totalQty}{' '}
+            <span className="font-medium ml-4">Total Amount:</span>{' '}
+            <span className="font-bold">
+              {formatCurrency(totalAmount)}
+            </span>
+          </div>
+
+          <div
+            className="text-xs mb-2"
+            style={{ color: 'var(--cds-text-secondary)' }}
+          >
+            Created at {formatDate(first.createdAt)}
+          </div>
+
+          {/* Items preview */}
+          <div className="mt-2 space-y-1 text-sm">
+            {items.slice(0, 3).map((item) => (
+              <div key={item.id} className="flex justify-between gap-2">
+                <div className="truncate">
+                  <span className="font-medium">{item.drugName}</span>{' '}
+                  <span className="text-xs text-gray-500">
+                    (SKU: {item.sku}, Batch: {item.batchNumber})
+                  </span>
+                </div>
+                <div className="whitespace-nowrap">
+                  Qty: {item.quantity} |{' '}
+                  {formatCurrency(item.totalPrice)}
+                </div>
+              </div>
+            ))}
+            {items.length > 3 && (
+              <div
+                className="text-xs text-gray-500"
+                style={{ color: 'var(--cds-text-secondary)' }}
+              >
+                + {items.length - 3} more item
+                {items.length - 3 > 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="w-40 flex flex-col gap-1 flex-shrink-0">
+          <Button
+            kind="primary"
+            size="sm"
+            renderIcon={Checkmark}
+            onClick={handleApprove}
+            disabled={loading}
+            className="flex-1 w-full text-xs"
+          >
+            {loading ? 'Processing...' : 'Approve Group'}
+          </Button>
+          <Button
+            kind="danger"
+            size="sm"
+            renderIcon={Close}
+            onClick={() => setShowDeclineModal(true)}
+            disabled={loading}
+            className="flex-1 w-full text-xs"
+          >
+            Decline Group
+          </Button>
+        </div>
+      </div>
+
+      {/* Decline Modal */}
+      <ComposedModal
+        open={showDeclineModal}
+        onClose={() => {
+          setShowDeclineModal(false);
+          setDeclineReason('');
+          setError(null);
+        }}
+      >
+        <ModalHeader label="" title="Decline Sale Group" />
+        <ModalBody>
+          <div>
+            <p className="mb-4">
+              Decline sale group <b>#{saleGroupId}</b> with{' '}
+              <b>{items.length}</b> item
+              {items.length > 1 ? 's' : ''} for{' '}
+              <b>{first.customerName}</b>?
+            </p>
+            <TextArea
+              labelText="Reason for Declining *"
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              placeholder="Please provide a reason for declining this sale group..."
+              rows={3}
+              className="mb-4"
+              required
+            />
+            {error && (
+              <InlineNotification
+                kind="error"
+                title="Error"
+                subtitle={error}
+                hideCloseButton={false}
+                onCloseButtonClick={() => setError(null)}
+              />
+            )}
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            kind="secondary"
+            onClick={() => {
+              setShowDeclineModal(false);
+              setDeclineReason('');
+              setError(null);
+            }}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            kind="danger"
+            onClick={handleDecline}
+            disabled={loading || !declineReason.trim()}
+          >
+            {loading ? 'Declining...' : 'Decline Group'}
+          </Button>
+        </ModalFooter>
+      </ComposedModal>
     </div>
   );
 };

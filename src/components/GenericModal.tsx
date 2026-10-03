@@ -19,7 +19,8 @@ export interface FormField {
     | 'combobox'
     | 'searchable-combobox'
     | 'multi-select'
-    | 'custom';
+    | 'custom'
+    | 'password';
   value: string | number | string[] | any;
   onChange: (value: string | number | string[] | any) => void;
   options?: Array<{ text: string; value: string }>;
@@ -51,6 +52,8 @@ export interface GenericModalProps {
   errorMessage?: string | null;
   /** Optional handler when closing the error. */
   onClearError?: () => void;
+  /** Optional loading/disabled state for submit button */
+  isSubmitting?: boolean;
 }
 
 const GenericModal = ({
@@ -65,6 +68,7 @@ const GenericModal = ({
   className,
   errorMessage,
   onClearError,
+  isSubmitting = false,
 }: GenericModalProps) => {
   if (!isOpen) return null;
 
@@ -241,7 +245,7 @@ const GenericModal = ({
                   <TextInput
                     id={field.key}
                     labelText=""
-                    type={field.type}
+                    type={field.type === 'password' ? 'password' : field.type === 'number' ? 'number' : 'text'}
                     placeholder={field.placeholder}
                     value={
                       field.type === 'number'
@@ -277,9 +281,9 @@ const GenericModal = ({
               kind="primary"
               className="bg-blue-600 text-white min-w-[160px]"
               onClick={onSubmit}
-              disabled={hasErrors}
+              disabled={hasErrors || isSubmitting}
             >
-              {submitButtonText}
+              {isSubmitting ? 'Submitting...' : submitButtonText}
             </Button>
           </div>
         </div>

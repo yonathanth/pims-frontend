@@ -18,6 +18,11 @@ export interface MonthlySeriesPointDto {
   sold: number;
 }
 
+export interface YearlySalesPointDto {
+  month: string;
+  sales: number;
+}
+
 export interface SupplierSummary {
   id: number;
   name: string;
@@ -54,8 +59,11 @@ export interface ProductDto {
 export interface AnalyticsResponseDto {
   metrics: KeyMetricDto[];
   inventory_cards: KeyMetricDto[];
+  sales_cards?: KeyMetricDto[];
+  supply_cards?: KeyMetricDto[];
   distribution_by_category: CategorySliceDto[];
   monthly_stocked_vs_sold: MonthlySeriesPointDto[];
+  yearly_sales?: YearlySalesPointDto[];
   top_suppliers: SupplierSummary[];
   top_performers: TopPerformerDto[];
   out_of_stock_products?: ProductDto[];
@@ -74,7 +82,6 @@ export interface AnalyticsQuery {
   endIso?: string; // optional for custom
   dateIso?: string; // when timeFilter=date
   rangeDays?: number; // reserved
-  lowStockThreshold?: number; // if omitted, backend uses General Configs
   topPerformersSort?: 'volume' | 'name';
   topPerformersOrder?: 'asc' | 'desc';
   topSuppliersSort?: 'volume' | 'value' | 'frequency';
@@ -102,6 +109,13 @@ function mapMonthlySeriesPoint(m: any): MonthlySeriesPointDto {
     month: m.month,
     stocked: Number(m.stocked ?? 0),
     sold: Number(m.sold ?? 0),
+  };
+}
+
+function mapYearlySalesPoint(y: any): YearlySalesPointDto {
+  return {
+    month: y.month,
+    sales: Number(y.sales ?? 0),
   };
 }
 
@@ -150,11 +164,20 @@ function mapAnalyticsResponse(raw: any): AnalyticsResponseDto {
     inventory_cards: Array.isArray(raw?.inventoryCards)
       ? raw.inventoryCards.map(mapKeyMetric)
       : [],
+    sales_cards: Array.isArray(raw?.salesCards)
+      ? raw.salesCards.map(mapKeyMetric)
+      : [],
+    supply_cards: Array.isArray(raw?.supplyCards)
+      ? raw.supplyCards.map(mapKeyMetric)
+      : [],
     distribution_by_category: Array.isArray(raw?.distributionByCategory)
       ? raw.distributionByCategory.map(mapCategorySlice)
       : [],
     monthly_stocked_vs_sold: Array.isArray(raw?.monthlyStockedVsSold)
       ? raw.monthlyStockedVsSold.map(mapMonthlySeriesPoint)
+      : [],
+    yearly_sales: Array.isArray(raw?.yearlySales)
+      ? raw.yearlySales.map(mapYearlySalesPoint)
       : [],
     top_suppliers: Array.isArray(raw?.topSuppliers)
       ? raw.topSuppliers.map(mapSupplierSummary)

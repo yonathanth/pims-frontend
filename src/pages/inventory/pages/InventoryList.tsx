@@ -14,10 +14,15 @@ import {
   DatePicker,
   DatePickerInput,
   TextInput,
+  NumberInput,
 } from '@carbon/react';
 import { Add } from '@carbon/icons-react';
 import GenericModal, { type FormField } from '../../../components/GenericModal';
 import { useInventoryTable } from '../../../hooks/useInventoryTable';
+import {
+  useSaleBatchSearch,
+  type SaleBatchRow,
+} from '../../../hooks/useSaleBatchSearch';
 import { useProducts } from '../../../hooks/useProducts';
 import { useSuppliers } from '../../../hooks/useSuppliers';
 import { useUnitTypes } from '../../../hooks/useUnitTypes';
@@ -27,12 +32,20 @@ import {
   LocationSelector,
   type SelectedLocation,
 } from '../../../components/LocationSelector';
+import {
+  createSaleGroup,
+  checkSaleExpiryOrder,
+  type ExpiryOrderConflict,
+  type ExpiryOrderPolicy,
+} from '../../../api/sales';
 import type {
   CreateBatchInput,
   UpdateBatchInput,
   CreateTransactionInput,
 } from '../../../types/inventory';
 import { createTransaction } from '../../../api/inventory';
+import ExpiryOrderNotice from '../../../components/ExpiryOrderNotice';
+import { useAuth } from '../../../hooks/useAuth';
 
 // Define inventory headers for the table
 const inventoryHeaders = [
@@ -49,22 +62,64 @@ const inventoryHeaders = [
 ];
 
 const InventoryList = () => {
+  const { session } = useAuth();
+  const isAdmin = session?.user?.role === 'ADMIN';
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editBatch, setEditBatch] = useState<any | null>(null);
+  const [editQuantity, setEditQuantity] = useState<string>('');
   const [editSelectedLocations, setEditSelectedLocations] = useState<
     SelectedLocation[]
   >([]);
+  // False when the batch's current locations couldn't be loaded; then locations aren't sent on save
+  const [editLocationsLoaded, setEditLocationsLoaded] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteBatch, setDeleteBatch] = useState<any | null>(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [selectedBatchForTransaction, setSelectedBatchForTransaction] =
     useState<any | null>(null);
 
+  // Batch creation loading state
+  const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
+  // Transaction creation loading state
+  const [isSubmittingTransaction, setIsSubmittingTransaction] = useState(false);
+  // Batch edit loading state
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  // Sale group (cart) state
+  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [saleSelectedBatch, setSaleSelectedBatch] =
+    useState<SaleBatchRow | null>(null);
+  const [saleQuantity, setSaleQuantity] = useState('');
+  const [saleSubmitting, setSaleSubmitting] = useState(false);
+  // Batches of the same product that expire sooner than what's in the cart
+  const [expiryConflicts, setExpiryConflicts] = useState<{
+    policy: ExpiryOrderPolicy;
+    conflicts: ExpiryOrderConflict[];
+  } | null>(null);
+  // Set once the user chose "Sell anyway" for the current cart (warn policy)
+  const [expiryWarningAccepted, setExpiryWarningAccepted] = useState(false);
+  const [saleCart, setSaleCart] = useState<
+    {
+      batchId: number;
+      drugName: string;
+      batchNumber: string;
+      unitTypeName?: string;
+      availableQty: number;
+      quantity: number;
+    }[]
+  >([]);
+
   // Transaction form state
   const [transactionType, setTransactionType] = useState('');
+  // Expiry-order check for 'sale' transactions created from the row modal
+  const [txExpiryConflicts, setTxExpiryConflicts] = useState<{
+    policy: ExpiryOrderPolicy;
+    conflicts: ExpiryOrderConflict[];
+  } | null>(null);
   const [transactionQuantity, setTransactionQuantity] = useState('');
   const [transactionNotes, setTransactionNotes] = useState('');
 
@@ -113,6 +168,10 @@ const InventoryList = () => {
     clearError,
     refetch: refetchInventory,
   } = useInventoryTable();
+
+  // Dedicated batch search for sales (independent of inventory pagination)
+  const { batches: saleBatches, setSearch: setSaleBatchSearch } =
+    useSaleBatchSearch(50);
 
   // For drug/supplier combo boxes
   const { products, setQ: setProductSearchTerm, setPage: setProductsPage } =
@@ -188,6 +247,17 @@ const InventoryList = () => {
   );
 
   // Keep the selected drug option in the list even if it falls off the current page
+  // A changed type or quantity needs a fresh expiry-order check
+  useEffect(() => {
+    setTxExpiryConflicts(null);
+  }, [transactionType, transactionQuantity]);
+
+  // A changed cart needs a fresh expiry-order check
+  useEffect(() => {
+    setExpiryConflicts(null);
+    setExpiryWarningAccepted(false);
+  }, [saleCart]);
+
   useEffect(() => {
     if (!selectedDrug) {
       setSelectedDrugOption(null);
@@ -222,12 +292,15 @@ const InventoryList = () => {
     resetProductSearch();
     resetSupplierSearch();
     resetUnitTypeSearch();
+    setIsSubmittingBatch(false);
+    setShowError(null);
   };
 
   const resetTransactionForm = () => {
     setTransactionType('');
     setTransactionQuantity('');
     setTransactionNotes('');
+    setTxExpiryConflicts(null);
   };
 
   // Auto-suggest 10% of current quantity for low stock threshold
@@ -241,7 +314,15 @@ const InventoryList = () => {
   };
 
   const handleAddBatch = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingBatch) {
+      return;
+    }
+
     try {
+      setIsSubmittingBatch(true);
+      setShowError(null);
+
       // Ensure required selections are present (ids stored in state)
       if (!selectedDrug || !selectedSupplier || !selectedUnitType) {
         setShowError('Please select valid drug, supplier, and unit type');
@@ -276,17 +357,32 @@ const InventoryList = () => {
         resetForm();
         setTimeout(() => setShowSuccess(false), 3000);
       } else {
-        setShowError(res.message);
+        setShowError(res.message || 'Failed to create batch');
       }
     } catch (err: any) {
+      // Handle duplicate request error from backend
+      if (err?.status === 409 || err?.message?.includes('Duplicate')) {
+        setShowError('This request was already submitted. Please wait a moment.');
+      } else {
       setShowError(err?.message || 'Failed to add batch');
+      }
+    } finally {
+      setIsSubmittingBatch(false);
     }
   };
 
   const handleEditBatch = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingEdit) {
+      return;
+    }
+
     if (!editBatch) return;
 
     try {
+      setIsSubmittingEdit(true);
+      setShowError(null);
+
       // Prefer explicit ids from editBatch; fall back to current selection for unit type
       const drugId = editBatch.drugId ?? editBatch.drug_id ?? editBatch.drugID;
       const supplierId =
@@ -304,7 +400,7 @@ const InventoryList = () => {
         return;
       }
 
-      const res = await updateBatch(editBatch.id, {
+      const updateData: UpdateBatchInput = {
         batch_number: batchNumber || undefined,
         drug_id: Number(drugId),
         supplier_id: Number(supplierId),
@@ -314,10 +410,17 @@ const InventoryList = () => {
         unit_cost: editBatch.unitCost,
         unit_price: editBatch.unitPrice,
         purchase_date: editBatch.purchaseDate,
-        current_qty: editBatch.currentQty,
         low_stock_threshold: editBatch.reorderLevel || 10,
-        location_ids: editBatch.locationIds || [],
-      } as UpdateBatchInput);
+        // Always send the selection shown in the form (preloaded from the batch's current locations)
+        location_ids: editLocationsLoaded
+          ? editSelectedLocations.map((loc) => loc.id)
+          : undefined,
+        // Quantity can only be changed by admins; the backend rejects it from other roles
+        current_qty:
+          isAdmin && editQuantity !== '' ? Number(editQuantity) : undefined,
+      };
+
+      const res = await updateBatch(editBatch.id, updateData);
 
       if (res.ok) {
         setShowError(null);
@@ -342,7 +445,14 @@ const InventoryList = () => {
         setShowError(res.message);
       }
     } catch (err: any) {
+      // Handle duplicate request error from backend
+      if (err?.status === 409 || err?.message?.includes('Duplicate')) {
+        setShowError('This request was already submitted. Please wait a moment.');
+      } else {
       setShowError(err?.message || 'Failed to update batch');
+      }
+    } finally {
+      setIsSubmittingEdit(false);
     }
   };
 
@@ -368,9 +478,17 @@ const InventoryList = () => {
   };
 
   const handleCreateTransaction = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingTransaction) {
+      return;
+    }
+
     if (!selectedBatchForTransaction) return;
 
     try {
+      setIsSubmittingTransaction(true);
+      setShowError(null);
+
       if (!transactionType || !transactionQuantity) {
         setShowError('Please fill in all required fields');
         return;
@@ -388,6 +506,29 @@ const InventoryList = () => {
           `Insufficient quantity. Available: ${availableQty}, Requested: ${requestedQty}`,
         );
         return;
+      }
+
+      // Sales follow the soonest-expiry-first rule. A warning is shown once;
+      // submitting again with the same warning on screen means "Sell anyway".
+      // The backend enforces 'block' itself, so a failed check falls through.
+      if (transactionType === 'sale') {
+        const warned =
+          txExpiryConflicts?.policy === 'warn' &&
+          txExpiryConflicts.conflicts.length > 0;
+        if (!warned) {
+          const check = await checkSaleExpiryOrder({
+            items: [
+              {
+                batchId: Number(selectedBatchForTransaction.id),
+                quantity: requestedQty,
+              },
+            ],
+          }).catch(() => null);
+          if (check && check.conflicts.length > 0) {
+            setTxExpiryConflicts(check);
+            return;
+          }
+        }
       }
 
       const res = await createTransaction({
@@ -422,6 +563,10 @@ const InventoryList = () => {
         setShowError((res as any).message || 'Transaction creation failed');
       }
     } catch (err: any) {
+      // Handle duplicate request error from backend
+      if (err?.status === 409 || err?.message?.includes('Duplicate')) {
+        setShowError('This request was already submitted. Please wait a moment.');
+      } else {
       // Extract error message from different possible locations
       let errorMessage = 'Failed to create transaction';
       if (err?.message) {
@@ -431,8 +576,10 @@ const InventoryList = () => {
       } else if (err?.details?.error) {
         errorMessage = err.details.error;
       }
-
       setShowError(errorMessage);
+      }
+    } finally {
+      setIsSubmittingTransaction(false);
     }
   };
 
@@ -444,6 +591,7 @@ const InventoryList = () => {
 
   const handleCloseModal = () => {
     setShowAddModal(false);
+    setIsSubmittingBatch(false);
     resetForm();
     setShowError(null);
     clearError();
@@ -711,6 +859,7 @@ const InventoryList = () => {
         onClick={async () => {
           setShowError(null);
           setEditBatch({ ...row });
+          setEditQuantity(String(row.quantity || row.currentQty || ''));
           setBatchNumber(row.batchNumberValue || row.batchNumber || '');
           // Set unit type by name if available, otherwise by ID
           const unitTypeName = row.unitTypeName;
@@ -723,6 +872,7 @@ const InventoryList = () => {
           try {
             const currentLocations = await fetchLocationsByBatch(
               Number(row.id),
+              { throwOnError: true },
             );
             const selectedLocs: SelectedLocation[] = (
               currentLocations || []
@@ -732,9 +882,11 @@ const InventoryList = () => {
               type: loc.locationType,
             }));
             setEditSelectedLocations(selectedLocs);
+            setEditLocationsLoaded(true);
           } catch (error) {
             console.error('Failed to fetch batch locations:', error);
             setEditSelectedLocations([]);
+            setEditLocationsLoaded(false);
           }
 
           setShowEditModal(true);
@@ -919,7 +1071,15 @@ const InventoryList = () => {
       label: 'Batch Information',
       type: 'text',
       value: selectedBatchForTransaction
-        ? `${selectedBatchForTransaction.drugName} - Batch #${selectedBatchForTransaction.batchNumber} (Available: ${selectedBatchForTransaction.unitTypeName ? `${selectedBatchForTransaction.quantity} ${selectedBatchForTransaction.unitTypeName}` : selectedBatchForTransaction.quantity})`
+        ? `${selectedBatchForTransaction.drugName}${
+            selectedBatchForTransaction.strength
+              ? ` (${selectedBatchForTransaction.strength})`
+              : ''
+          } - Batch #${selectedBatchForTransaction.batchNumber} (Available: ${
+            selectedBatchForTransaction.unitTypeName
+              ? `${selectedBatchForTransaction.quantity} ${selectedBatchForTransaction.unitTypeName}`
+              : selectedBatchForTransaction.quantity
+          })`
         : '',
       onChange: () => {}, // Read-only
       required: false,
@@ -1026,7 +1186,7 @@ const InventoryList = () => {
                     id="stock-status-filter"
                     items={stockStatusOptions}
                     itemToString={(item) => (item ? item.text : '')}
-                    initialSelectedItem={{ text: 'All', value: 'All' }}
+                    initialSelectedItem={{ text: 'In Stock', value: 'In stock' }}
                     onChange={({ selectedItem }) => {
                       const status = selectedItem?.value || 'All';
                       setStockStatus(status as any);
@@ -1060,18 +1220,31 @@ const InventoryList = () => {
                 </div>
               </div>-
 
-              {/* Right side - Search and Add Button */}
+            {/* Right side - Search and Action Buttons */}
               <div className="flex items-end gap-3">
                  <div className="min-w-64">
                    <TextInput
                      id="search-input"
                      labelText="Search"
-                     placeholder="Search (Drug Name, SKU,Batch Number, Supplier)"
+                     placeholder="Search (Drug Name, SKU, Batch Number, Supplier, Category, Location)"
                      value={q}
                      onChange={(e) => setQ(e.target.value)}
                      autoComplete="off"
                    />
                  </div>
+               <Button
+                 kind="secondary"
+                 size="md"
+                 onClick={() => {
+                   setShowError(null);
+                   setSaleSelectedBatch(null);
+                   setSaleQuantity('');
+                   setSaleCart([]);
+                   setShowSaleModal(true);
+                 }}
+               >
+                 Create Sale
+               </Button>
                 <Button
                   kind="primary"
                   size="md"
@@ -1131,9 +1304,34 @@ const InventoryList = () => {
             'purchaseDate',
           ],
         }}
+        getRowClassName={(row) =>
+          (row as any).expiryDate &&
+          new Date((row as any).expiryDate) < new Date()
+            ? 'row-expired'
+            : undefined
+        }
         renderCell={(row, key) => {
           if (key === 'actions') {
             return renderActionsMenu(row);
+          }
+
+          // Drug name + strength
+          if (key === 'drugName') {
+            const strength = (row as any).strength;
+            const label = strength
+              ? `${(row as any).drugName} (${strength})`
+              : (row as any).drugName;
+            return (
+              <div
+                style={{ cursor: 'pointer' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRowClick(row);
+                }}
+              >
+                {label}
+              </div>
+            );
           }
 
           // Format quantity with unit type
@@ -1198,12 +1396,15 @@ const InventoryList = () => {
         fields={modalFields}
         errorMessage={showError}
         onClearError={() => setShowError(null)}
+        isSubmitting={isSubmittingBatch}
       />
 
       <GenericModal
         isOpen={showEditModal}
         onClose={() => {
           setShowEditModal(false);
+          setIsSubmittingEdit(false);
+          setEditQuantity('');
           setEditSelectedLocations([]);
           setShowError(null);
           clearError();
@@ -1211,6 +1412,7 @@ const InventoryList = () => {
         onSubmit={handleEditBatch}
         title="Edit Inventory Batch"
         submitButtonText="Save Changes"
+        isSubmitting={isSubmittingEdit}
         fields={
           editBatch
             ? [
@@ -1303,7 +1505,20 @@ const InventoryList = () => {
                     setEditBatch({ ...editBatch, purchaseDate: v as string }),
                   required: true,
                 },
-                // Current quantity removed from edit modal as requested
+                // Quantity field - Admin only
+                ...(isAdmin
+                  ? [
+                      {
+                        key: 'currentQty',
+                        label: 'Current Quantity (Admin Only)',
+                        type: 'number' as const,
+                        value: editQuantity,
+                        onChange: (v: any) => setEditQuantity(v as string),
+                        placeholder: 'Enter quantity',
+                        required: false,
+                      },
+                    ]
+                  : []),
                 {
                   key: 'lowStockThreshold',
                   label: 'Low Stock Threshold',
@@ -1335,6 +1550,7 @@ const InventoryList = () => {
                       selectedLocations={editSelectedLocations}
                       onChange={(locations) => {
                         setEditSelectedLocations(locations);
+                        setEditLocationsLoaded(true);
                         setEditBatch({
                           ...editBatch,
                           locationIds: locations.map((loc) => loc.id),
@@ -1388,6 +1604,7 @@ const InventoryList = () => {
         isOpen={showTransactionModal}
         onClose={() => {
           setShowTransactionModal(false);
+          setIsSubmittingTransaction(false);
           setSelectedBatchForTransaction(null);
           resetTransactionForm();
           setShowError(null);
@@ -1395,11 +1612,321 @@ const InventoryList = () => {
         }}
         onSubmit={handleCreateTransaction}
         title={`Create Transaction - ${selectedBatchForTransaction ? selectedBatchForTransaction.drugName : ''}`}
-        submitButtonText="Create Transaction"
+        submitButtonText={
+          txExpiryConflicts?.policy === 'warn' &&
+          txExpiryConflicts.conflicts.length > 0
+            ? 'Sell Anyway'
+            : 'Create Transaction'
+        }
         fields={transactionModalFields}
         errorMessage={showError}
         onClearError={() => setShowError(null)}
-      />
+        isSubmitting={isSubmittingTransaction}
+      >
+        {txExpiryConflicts && (
+          <ExpiryOrderNotice
+            policy={txExpiryConflicts.policy}
+            conflicts={txExpiryConflicts.conflicts}
+          />
+        )}
+      </GenericModal>
+
+      {/* Sale group (cart) modal */}
+      <ComposedModal
+        open={showSaleModal}
+        onClose={() => {
+          setShowSaleModal(false);
+          setSaleSelectedBatch(null);
+          setSaleQuantity('');
+          setSaleCart([]);
+          setSaleSubmitting(false);
+          setShowError(null);
+        }}
+      >
+        <ModalHeader label="" title="Create Sale" />
+        <ModalBody>
+          {showError && (
+            <InlineNotification
+              kind="error"
+              title="Sale Error"
+              subtitle={showError}
+              hideCloseButton={false}
+              onCloseButtonClick={() => setShowError(null)}
+              className="mb-4"
+            />
+          )}
+
+          {/* Item selection */}
+          <div className="mb-4 space-y-3">
+            <ComboBox
+              id="sale-item-combobox"
+              titleText="Select item from inventory"
+              placeholder="Search by drug, SKU or batch..."
+              items={saleBatches}
+              itemToString={(item) =>
+                item
+                  ? `${item.drugName}${
+                      item.strength ? ` (${item.strength})` : ''
+                    } - Batch #${item.batchNumber} (Available: ${item.quantity} ${
+                      item.unitTypeName || ''
+                    }${item.expiryDate ? `, expires ${item.expiryDate}` : ''})`
+                  : ''
+              }
+              selectedItem={saleSelectedBatch as any}
+              onChange={({ selectedItem }) => {
+                setSaleSelectedBatch((selectedItem as SaleBatchRow) || null);
+              }}
+              onInputChange={(val: string) => {
+                setSaleBatchSearch(val);
+              }}
+            />
+
+            <NumberInput
+              id="sale-quantity-input"
+              min={1}
+              value={saleQuantity}
+              onChange={(_, { value }) => setSaleQuantity(String(value))}
+              label="Quantity"
+              placeholder="Enter quantity to add"
+            />
+
+            <Button
+              kind="primary"
+              size="sm"
+              disabled={!saleSelectedBatch || !saleQuantity || saleSubmitting}
+              onClick={() => {
+                if (!saleSelectedBatch) {
+                  setShowError('Please select an item');
+                  return;
+                }
+                const qty = Number(saleQuantity);
+                if (!qty || qty <= 0 || Number.isNaN(qty)) {
+                  setShowError('Please enter a valid quantity');
+                  return;
+                }
+
+                const existingForBatch = saleCart.filter(
+                  (item) => item.batchId === Number(saleSelectedBatch.id),
+                );
+                const alreadyInCartQty = existingForBatch.reduce(
+                  (sum, item) => sum + item.quantity,
+                  0,
+                );
+                const available = saleSelectedBatch.quantity;
+
+                if (qty + alreadyInCartQty > available) {
+                  setShowError(
+                    `Insufficient quantity. Available: ${available - alreadyInCartQty}, Requested: ${qty}`,
+                  );
+                  return;
+                }
+
+                setSaleCart((prev) => {
+                  const existingIndex = prev.findIndex(
+                    (p) => p.batchId === Number(saleSelectedBatch.id),
+                  );
+                  if (existingIndex >= 0) {
+                    const updated = [...prev];
+                    updated[existingIndex] = {
+                      ...updated[existingIndex],
+                      quantity: updated[existingIndex].quantity + qty,
+                    };
+                    return updated;
+                  }
+                  return [
+                    ...prev,
+                    {
+                      batchId: Number(saleSelectedBatch.id),
+                      drugName: saleSelectedBatch.drugName,
+                      batchNumber: saleSelectedBatch.batchNumber,
+                      unitTypeName: saleSelectedBatch.unitTypeName,
+                      availableQty: saleSelectedBatch.quantity,
+                      quantity: qty,
+                    },
+                  ];
+                });
+
+                setSaleQuantity('');
+                setShowError(null);
+              }}
+            >
+              Add to Sale
+            </Button>
+          </div>
+
+          {expiryConflicts && (
+            <ExpiryOrderNotice
+              policy={expiryConflicts.policy}
+              conflicts={expiryConflicts.conflicts}
+            />
+          )}
+
+          {/* Cart preview */}
+          <div>
+            <h5 className="font-semibold mb-2">Selected Items</h5>
+            {saleCart.length === 0 ? (
+              <p
+                className="text-sm"
+                style={{ color: 'var(--cds-text-secondary)' }}
+              >
+                No items added yet. Use the search above to add items to this
+                sale.
+              </p>
+            ) : (
+              <div className="border rounded-md overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr
+                      style={{
+                        backgroundColor: 'var(--cds-layer-accent)',
+                        borderBottom: '1px solid var(--cds-border-subtle)',
+                      }}
+                    >
+                      <th className="text-left px-3 py-2">Drug</th>
+                      <th className="text-left px-3 py-2">Batch</th>
+                      <th className="text-left px-3 py-2">Qty</th>
+                      <th className="text-left px-3 py-2">Available</th>
+                      <th className="text-right px-3 py-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {saleCart.map((item) => (
+                      <tr
+                        key={item.batchId}
+                        style={{
+                          borderBottom:
+                            '1px solid var(--cds-border-subtle-01)',
+                        }}
+                      >
+                        <td className="px-3 py-2 truncate">
+                          {item.drugName}
+                        </td>
+                        <td className="px-3 py-2">{item.batchNumber}</td>
+                        <td className="px-3 py-2">
+                          {item.quantity}{' '}
+                          {item.unitTypeName ? item.unitTypeName : ''}
+                        </td>
+                        <td className="px-3 py-2">
+                          {item.availableQty}{' '}
+                          {item.unitTypeName ? item.unitTypeName : ''}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <Button
+                            kind="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setSaleCart((prev) =>
+                                prev.filter((p) => p.batchId !== item.batchId),
+                              )
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            kind="secondary"
+            onClick={() => {
+              setShowSaleModal(false);
+              setSaleSelectedBatch(null);
+              setSaleQuantity('');
+              setSaleCart([]);
+              setSaleSubmitting(false);
+              setShowError(null);
+            }}
+            disabled={saleSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            kind="primary"
+            disabled={
+              saleCart.length === 0 ||
+              saleSubmitting ||
+              (expiryConflicts?.policy === 'block' &&
+                expiryConflicts.conflicts.length > 0)
+            }
+            onClick={async () => {
+              // After a warning, the next click means "Sell anyway"
+              const sellAnyway =
+                expiryWarningAccepted ||
+                (expiryConflicts?.policy === 'warn' &&
+                  expiryConflicts.conflicts.length > 0);
+              if (sellAnyway && !expiryWarningAccepted) {
+                setExpiryWarningAccepted(true);
+              }
+
+              // Prevent multiple submissions
+              if (saleSubmitting) {
+                return;
+              }
+
+              try {
+                setSaleSubmitting(true);
+                setShowError(null);
+
+                const saleRequest = {
+                  notes: undefined,
+                  items: saleCart.map((item) => ({
+                    batchId: item.batchId,
+                    quantity: item.quantity,
+                  })),
+                };
+
+                // Check for batches of the same product that expire sooner.
+                // The backend enforces 'block' on its own, so if the check
+                // itself fails we fall through to creating the sale.
+                if (!sellAnyway) {
+                  const check = await checkSaleExpiryOrder(saleRequest).catch(
+                    () => null,
+                  );
+                  if (check && check.conflicts.length > 0) {
+                    setExpiryConflicts(check);
+                    setSaleSubmitting(false);
+                    return;
+                  }
+                }
+
+                await createSaleGroup(saleRequest);
+
+                setShowSaleModal(false);
+                setSaleSelectedBatch(null);
+                setSaleQuantity('');
+                setSaleCart([]);
+                setSaleSubmitting(false);
+
+                // Refresh inventory to reflect deducted quantities
+                refetchInventory();
+                setShowSuccess(true);
+                setTimeout(() => setShowSuccess(false), 3000);
+              } catch (err: any) {
+                setSaleSubmitting(false);
+                // Handle duplicate request error from backend
+                if (err?.status === 409 || err?.message?.includes('Duplicate')) {
+                  setShowError('This request was already submitted. Please wait a moment.');
+                } else {
+                  setShowError(err?.message || 'Failed to create grouped sale');
+                }
+              }
+            }}
+          >
+            {saleSubmitting
+              ? 'Creating Sale...'
+              : expiryConflicts?.policy === 'warn' &&
+                  expiryConflicts.conflicts.length > 0
+                ? 'Sell Anyway'
+                : 'Create Sale'}
+          </Button>
+        </ModalFooter>
+      </ComposedModal>
     </GeneralPageLayout>
   );
 };

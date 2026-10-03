@@ -6,7 +6,7 @@ function mapSuppliersQuery(query: ListSuppliersQuery = {}) {
   if (query.q) params.search = query.q;
   if (query.limit) params.limit = query.limit;
   if ((query as any).page) params.page = (query as any).page;
-  if (query.offset !== undefined) {
+  else if (query.offset !== undefined) {
     const limit = query.limit ?? 50;
     params.page = Math.floor((query.offset as number) / limit) + 1;
   }

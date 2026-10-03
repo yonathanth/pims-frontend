@@ -23,11 +23,12 @@ import ReportGenerationPage from './pages/ReportGenerationPage';
 import AuditLogPage from './pages/AuditLogPage';
 import TransactionsPage from './pages/TransactionsPage';
 import Analytics from './pages/analytics/Analytics';
-// import SettingsPage from './pages/settingpage';
+import SettingsPage from './pages/settingpage';
 import OnboardingWelcome from './pages/onboarding/OnboardingWelcome.tsx';
 import Step0 from './pages/onboarding/steps/pages/Step0';
 import Step2 from './pages/onboarding/steps/pages/Step2';
-import SellerPage from './pages/SellerPage';
+import CashierPage from './pages/CashierPage';
+import SalesPage from './pages/SalesPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 
@@ -61,12 +62,22 @@ export default function AppRouter() {
     })();
   }, []);
 
-  if (setupStatus === null) return null;
+  if (setupStatus === null) {
+    // Show loading state instead of blank screen
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading application...</p>
+        </div>
+      </div>
+    );
+  }
 
   function RoleLanding() {
     const { session } = useAuth();
     const role = session?.user?.role;
-    if (role === 'SELLER') return <Navigate to="/dashboard/seller" replace />;
+    if (role === 'SELLER') return <Navigate to="/dashboard/cashier" replace />;
     if (role === 'PHARMACIST')
       return <Navigate to="/dashboard/inventory" replace />;
     // Admin and Manager (and any other roles) go to admin dashboard
@@ -195,8 +206,14 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/* Settings page hidden */}
-        {/* <Route path="/settings" element={<SettingsPage />} /> */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard/categories"
           element={
@@ -213,11 +230,28 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+        {/* Redirect old routes to new ones for backward compatibility */}
         <Route
           path="/dashboard/seller"
+          element={<Navigate to="/dashboard/cashier" replace />}
+        />
+        <Route
+          path="/dashboard/sales-products"
+          element={<Navigate to="/dashboard/sales" replace />}
+        />
+        <Route
+          path="/dashboard/cashier"
           element={
             <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'SELLER']}>
-              <SellerPage />
+              <CashierPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/sales"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'PHARMACIST', 'SELLER']}>
+              <SalesPage />
             </ProtectedRoute>
           }
         />

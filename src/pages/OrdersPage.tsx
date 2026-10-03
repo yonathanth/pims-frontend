@@ -99,6 +99,9 @@ const OrdersPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  // Loading states
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   // Auxiliary modals (add new supplier/product)
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
@@ -185,6 +188,7 @@ const OrdersPage = () => {
   };
   const handleCloseModal = () => {
     setShowAddModal(false);
+    setIsSubmittingOrder(false);
     resetForm();
   };
   // Backend expects format "%Y-%m-%d %H:%M:%S"; build at midnight local if only date provided
@@ -260,7 +264,15 @@ const OrdersPage = () => {
 
   // CRUD handlers
   const handleAddOrder = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingOrder) {
+      return;
+    }
+
     try {
+      setIsSubmittingOrder(true);
+      setModalError(null);
+
       if (!supplier || supplier === '__choose_supplier__') {
         setModalError('Please select a valid supplier');
         return;
@@ -327,12 +339,27 @@ const OrdersPage = () => {
       setTimeout(() => setShowSuccess(false), 1500);
     } catch (e: any) {
       console.error(e);
+      // Handle duplicate request error from backend
+      if (e?.status === 409 || e?.message?.includes('Duplicate')) {
+        setModalError('This request was already submitted. Please wait a moment.');
+      } else {
       setModalError((e?.message as string) || 'Failed to add order');
+      }
+    } finally {
+      setIsSubmittingOrder(false);
     }
   };
 
   const handleEditOrder = async () => {
+    // Prevent multiple submissions
+    if (isSubmittingEdit) {
+      return;
+    }
+
     try {
+      setIsSubmittingEdit(true);
+      setModalError(null);
+
       if (!editingOrderId) return;
       if (!supplier || supplier === '__choose_supplier__') {
         setModalError('Please select a valid supplier');
@@ -462,7 +489,14 @@ const OrdersPage = () => {
       setTimeout(() => setShowSuccess(false), 1500);
     } catch (e: any) {
       console.error(e);
+      // Handle duplicate request error from backend
+      if (e?.status === 409 || e?.message?.includes('Duplicate')) {
+        setModalError('This request was already submitted. Please wait a moment.');
+      } else {
       setModalError((e?.message as string) || 'Failed to edit order');
+      }
+    } finally {
+      setIsSubmittingEdit(false);
     }
   };
 
@@ -930,6 +964,7 @@ const OrdersPage = () => {
         submitButtonText="Add Order"
         errorMessage={modalError}
         onClearError={() => setModalError(null)}
+        isSubmitting={isSubmittingOrder}
         fields={modalFields}
         maxWidth="72rem"
         className="max-h-[90vh] overflow-y-auto"
@@ -1016,6 +1051,7 @@ const OrdersPage = () => {
         isOpen={showEditModal}
         onClose={() => {
           setModalError(null);
+          setIsSubmittingEdit(false);
           setShowEditModal(false);
           resetForm();
         }}
@@ -1024,6 +1060,7 @@ const OrdersPage = () => {
         submitButtonText="Save Changes"
         errorMessage={modalError}
         onClearError={() => setModalError(null)}
+        isSubmitting={isSubmittingEdit}
         fields={modalFields}
         maxWidth="72rem"
         className="max-h-[90vh] overflow-y-auto"
@@ -1260,10 +1297,10 @@ const OrdersPage = () => {
             type: 'text',
             value: newSupplierEmail,
             onChange: (v: any) => setNewSupplierEmail(v as string),
-            placeholder: 'Enter email',
-            required: true,
+            placeholder: 'Enter email (optional)',
+            required: false,
             validate: (v) =>
-              /.+@.+/.test(String(v)) ? undefined : 'Invalid email',
+              v ? (/.+@.+/.test(String(v)) ? undefined : 'Invalid email') : undefined,
           },
           {
             key: 'supplierAddress',

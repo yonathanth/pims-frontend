@@ -11,16 +11,29 @@ interface SummaryCardProps {
 
 // List of metric labels that are affected by time filter
 const TIME_FILTERED_METRICS = [
+  // General metrics (above tabs) - time-filtered
   'Total Revenue',
   'Total Profit',
   'Total Sales (qty)',
   'Total Transactions',
-  'Expiring in 30 days',
-  'Expired Items',
+  // Inventory cards - time-filtered
+  'Turnover Rate',
   'Top seller',
   'Avg Sale Value (per unit)',
   'Most Ordered Product',
-  'Turnover Rate', // Partially time-filtered (uses soldCurrent)
+  // Sales cards - all are time-filtered (use currentStart/currentEnd)
+  'Average sale value',
+  'Fastest moving product',
+  'Top-selling product',
+  'Worst-performing product',
+  'Total Sales Revenue',
+  'Total Sales (qty)',
+  'Total Transactions',
+  'Total Profit',
+  'Top-selling category',
+  'Month that sold the most',
+  // Supply cards - time-filtered
+  'Most ordered product',
 ];
 
 const SummaryCards: React.FC<SummaryCardProps> = ({ summaryData }) => {

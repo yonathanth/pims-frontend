@@ -3,6 +3,8 @@ import {
   getPendingSales,
   approveSale,
   declineSale,
+  approveSaleGroup,
+  declineSaleGroup,
   type PendingSale,
 } from '../api/sales';
 
@@ -53,6 +55,43 @@ export function usePendingSales() {
     }
   }, []);
 
+  const handleApproveSaleGroup = useCallback(async (saleId: number) => {
+    try {
+      await approveSaleGroup(saleId, {});
+      // Remove all sales in this group from pending list
+      setPendingSales((prev) =>
+        prev.filter((sale) => sale.saleId !== saleId),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to approve sale group',
+      );
+      throw err;
+    }
+  }, []);
+
+  const handleDeclineSaleGroup = useCallback(
+    async (saleId: number, reason: string) => {
+      try {
+        await declineSaleGroup(saleId, { reason });
+        // Remove all sales in this group from pending list
+        setPendingSales((prev) =>
+          prev.filter((sale) => sale.saleId !== saleId),
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to decline sale group',
+        );
+        throw err;
+      }
+    },
+    [],
+  );
+
   // Auto-refresh every 2 seconds (background refresh)
   useEffect(() => {
     fetchPendingSales(); // Initial load with loading state
@@ -69,5 +108,7 @@ export function usePendingSales() {
     refreshPendingSales: () => fetchPendingSales(false), // Manual refresh with loading state
     approveSale: handleApproveSale,
     declineSale: handleDeclineSale,
+    approveSaleGroup: handleApproveSaleGroup,
+    declineSaleGroup: handleDeclineSaleGroup,
   };
 }

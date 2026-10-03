@@ -48,7 +48,7 @@ export default function LoginPage() {
 
       // Redirect based on user role
       if (session.user?.role === 'SELLER') {
-        navigate('/dashboard/seller');
+        navigate('/dashboard/cashier');
       } else if (session.user?.role === 'PHARMACIST') {
         navigate('/dashboard/inventory');
       } else {

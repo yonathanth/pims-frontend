@@ -2,15 +2,12 @@ import { Tabs, Tab, TabList, TabPanels, TabPanel, InlineLoading } from "@carbon/
 import InventoryAnalyticsPanel from "./InventoryAnalyticsPanel";
 import SalesAnalytics from "./SalesAnalytics";
 import SupplyAnalytics from "./SupplyAnalytics";
-import EmployeeAnalytics from "./EmployeeAnalytics";
 import { useEffect, useState } from "react";
 import type { AnalyticsResponseDto } from "../../../api/analytics";
 
 interface AnalyticsTabsProps {
   analytics?: AnalyticsResponseDto | null;
   loading?: boolean;
-  topPerformersSort: 'volume'|'name';
-  onChangeTopPerformersSort: (v: 'volume'|'name') => void;
   topSuppliersSort: 'volume'|'value'|'frequency';
   onChangeTopSuppliersSort: (v: 'volume'|'value'|'frequency') => void;
 }
@@ -18,8 +15,6 @@ interface AnalyticsTabsProps {
 const AnalyticsTabs: React.FC<AnalyticsTabsProps> = ({
   analytics,
   loading: loadingProp = false,
-  topPerformersSort,
-  onChangeTopPerformersSort,
   topSuppliersSort,
   onChangeTopSuppliersSort,
 }) => {
@@ -41,8 +36,7 @@ const AnalyticsTabs: React.FC<AnalyticsTabsProps> = ({
       <TabList contained fullWidth className=" mt-4 px-6">
         <Tab>Inventory Analytics</Tab>
         <Tab>Sales Analytics</Tab>
-        <Tab>Supplier Analytics</Tab>
-        <Tab>Employee Analaytics</Tab>
+        <Tab>Supply</Tab>
       </TabList>
 
       <div className="" style={{padding: ""}}>
@@ -75,19 +69,6 @@ const AnalyticsTabs: React.FC<AnalyticsTabsProps> = ({
                 analytics={analytics}
                 sortBy={topSuppliersSort}
                 onChangeSort={onChangeTopSuppliersSort}
-              />
-            )}
-          </TabPanel>
-          <TabPanel>
-            {loading || loadingProp ? (
-              <div className="flex justify-center items-center h-64">
-                <InlineLoading description="Loading..." />
-              </div>
-            ) : (
-              <EmployeeAnalytics
-                analytics={analytics}
-                sortBy={topPerformersSort}
-                onChangeSort={onChangeTopPerformersSort}
               />
             )}
           </TabPanel>

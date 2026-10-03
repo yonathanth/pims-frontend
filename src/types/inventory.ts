@@ -25,7 +25,10 @@ export type CreateBatchInput = {
   location_ids?: number[];
 };
 
-export type UpdateBatchInput = CreateBatchInput;
+// current_qty is optional on update: only admins may change it
+export type UpdateBatchInput = Omit<CreateBatchInput, 'current_qty'> & {
+  current_qty?: number;
+};
 
 export type BatchViewDto = {
   batch: BatchDto;

@@ -1,8 +1,8 @@
 import SummaryCards from './SummaryCards';
 // Removed fallback random data; show empty when backend has none
-import { DonutChart, GroupedBarChart } from '@carbon/charts-react';
+import { DonutChart, LineChart } from '@carbon/charts-react';
 import { salesOptions } from '../../../data/donutData';
-import { salesBarOptions } from '../../../data/barData';
+import { ScaleTypes } from '@carbon/charts';
 import { SortableTable } from '../../../components/SortableTable';
 import { inventoryTableHeaders } from '../../../data/tabTableData';
 import type { AnalyticsResponseDto, ProductDto } from '../../../api/analytics';
@@ -14,9 +14,10 @@ interface SalesAnalyticsProps {
 const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ analytics }) => {
   const [sortFastBy] = useState<'qty' | 'price'>('qty');
   const [sortSlowBy] = useState<'qty' | 'price'>('qty');
+  // Use sales_cards instead of metrics for Sales tab
   const summary =
-    analytics?.metrics && analytics.metrics.length > 0
-      ? analytics.metrics.map((m) => ({
+    analytics?.sales_cards && analytics.sales_cards.length > 0
+      ? analytics.sales_cards.map((m) => ({
           label: m.label,
           value:
             typeof m.value === 'object' && m.value !== null
@@ -25,11 +26,13 @@ const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ analytics }) => {
           trend: m.trend_up ? ('up' as const) : ('down' as const),
         }))
       : [];
-  const monthly = analytics?.monthly_stocked_vs_sold?.length
-    ? analytics.monthly_stocked_vs_sold.flatMap((m) => [
-        { group: 'Stocked', key: m.month, value: m.stocked },
-        { group: 'Sold', key: m.month, value: m.sold },
-      ])
+  // Use yearly_sales for line chart
+  const yearlySales = analytics?.yearly_sales?.length
+    ? analytics.yearly_sales.map((y) => ({
+        group: 'Sales',
+        key: y.month,
+        value: y.sales,
+      }))
     : [];
   const donut = analytics?.distribution_by_category?.length
     ? analytics.distribution_by_category.map((c) => ({
@@ -95,8 +98,33 @@ const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ analytics }) => {
           )}
         </div>
         <div className="flex-1 rounded-md p-4">
-          {monthly.length > 0 ? (
-            <GroupedBarChart data={monthly} options={salesBarOptions} />
+          {yearlySales.length > 0 ? (
+            <LineChart
+              data={yearlySales}
+              options={{
+                title: 'Sales for the Year',
+                axes: {
+                  left: {
+                    mapsTo: 'value',
+                    title: 'Quantity Sold',
+                  },
+                  bottom: {
+                    mapsTo: 'key',
+                    scaleType: ScaleTypes.LABELS,
+                    title: 'Month',
+                  },
+                },
+                height: '400px',
+                legend: {
+                  alignment: 'center',
+                },
+                color: {
+                  scale: {
+                    Sales: '#4285f4',
+                  },
+                },
+              }}
+            />
           ) : (
             <div className="text-sm text-gray-500">No data</div>
           )}

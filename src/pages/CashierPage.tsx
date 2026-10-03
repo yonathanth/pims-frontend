@@ -2,7 +2,7 @@ import React from 'react';
 import DashboardLayout from './dashboard/layouts/DashboardLayout';
 import { PendingSalesStack } from './seller/components/PendingSalesStack';
 
-const SellerPage: React.FC = () => {
+const CashierPage: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="min-h-screen w-full">
@@ -28,4 +28,11 @@ const SellerPage: React.FC = () => {
   );
 };
 
-export default SellerPage;
+export default CashierPage;
+
+
+
+
+
+
+

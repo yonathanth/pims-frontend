@@ -205,6 +205,32 @@ const ReportGenerationPage = () => {
     return [{ value: 'All', text: 'All' }, ...categoryOptions];
   };
 
+  // Get date filter labels based on report type
+  const getDateFilterLabels = () => {
+    switch (reportType) {
+      case 'Inventory Report':
+        return {
+          from: 'Purchase Date From',
+          to: 'Purchase Date To',
+        };
+      case 'Sales Report':
+        return {
+          from: 'Transaction Date From',
+          to: 'Transaction Date To',
+        };
+      case 'Expiry Report':
+        return {
+          from: 'Expiry Date From',
+          to: 'Expiry Date To',
+        };
+      default:
+        return {
+          from: 'From',
+          to: 'To',
+        };
+    }
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -265,7 +291,7 @@ const ReportGenerationPage = () => {
           <div className="min-w-[150px]">
             <TextInput
               id="fromDate"
-              labelText="From"
+              labelText={getDateFilterLabels().from}
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
@@ -277,7 +303,7 @@ const ReportGenerationPage = () => {
           <div className="min-w-[150px]">
             <TextInput
               id="toDate"
-              labelText="To"
+              labelText={getDateFilterLabels().to}
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}

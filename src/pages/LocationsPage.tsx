@@ -15,6 +15,9 @@ import {
 import { Add } from '@carbon/icons-react';
 import GenericModal, { type FormField } from '../components/GenericModal';
 import { useLocationsTable } from '../hooks/useLocationsTable';
+import ExpandedRowList from '../components/ExpandedRowList';
+import { listBatchesInLocation } from '../api/locations';
+import type { LocationBatchViewDto } from '../types/location';
 import type {
   CreateLocationInput,
   UpdateLocationInput,
@@ -161,6 +164,41 @@ const LocationsPage = () => {
           </p>
         </div>
       )}
+      <div className="-mx-6 -mb-6">
+        <ExpandedRowList<LocationBatchViewDto>
+          title="Batches at this location"
+          load={async (page, pageSize) => {
+            const res = await listBatchesInLocation(Number(rowData.id), {
+              page,
+              limit: pageSize,
+            });
+            return { items: res.data || [], total: res.meta?.totalItems ?? 0 };
+          }}
+          getKey={(b) => b.batchId}
+          emptyText="No batches stored at this location."
+          getRowClassName={(b) =>
+            new Date(b.expiryDate) < new Date() ? 'row-expired' : undefined
+          }
+          columns={[
+            {
+              header: 'Batch #',
+              render: (b) => b.batchNumber || `#${b.batchId}`,
+            },
+            { header: 'SKU', render: (b) => b.sku },
+            {
+              header: 'Drug',
+              render: (b) =>
+                b.strength ? `${b.drugName} (${b.strength})` : b.drugName,
+            },
+            { header: 'Qty here', render: (b) => b.quantity },
+            { header: 'Batch total', render: (b) => b.totalQty },
+            {
+              header: 'Expiry',
+              render: (b) => new Date(b.expiryDate).toISOString().split('T')[0],
+            },
+          ]}
+        />
+      </div>
     </div>
   );
 

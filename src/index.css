@@ -13,3 +13,13 @@ body,
   margin: 0;
   padding: 0;
 }
+
+/* Expired inventory rows (overrides Carbon zebra striping) */
+.cds--data-table tbody tr.row-expired td,
+.cds--data-table tbody tr.row-expired td tr td,
+table tr.row-expired > td,
+.cds--data-table tbody tr.row-expired:hover td {
+  background-color: var(--cds-support-error, #da1e28) !important;
+  color: #ffffff !important;
+  border-color: transparent;
+}

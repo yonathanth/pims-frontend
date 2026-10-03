@@ -12,7 +12,7 @@ function mapLocationsQuery(query: any = {}) {
   if (query.q) params.search = query.q; // Support legacy
   if (query.limit) params.limit = query.limit;
   if (query.page) params.page = query.page;
-  if (query.offset !== undefined) {
+  else if (query.offset !== undefined) {
     const limit = query.limit ?? 50;
     params.page = Math.floor((query.offset as number) / limit) + 1;
   }
@@ -55,8 +55,19 @@ export const deleteLocation = (id: number) => {
   return httpClient.delete(`/locations/${id}`);
 };
 
-export const listBatchesInLocation = (location_id: number) =>
-  httpClient.get<LocationBatchViewDto[]>(`/locations/${location_id}/batches`);
+export const listBatchesInLocation = (
+  location_id: number,
+  query: { page?: number; limit?: number } = {},
+) =>
+  httpClient.get<{
+    data: LocationBatchViewDto[];
+    meta: {
+      page: number;
+      limit: number;
+      totalItems: number;
+      totalPages: number;
+    };
+  }>(`/locations/${location_id}/batches`, query);
 
 export const locationsSummary = () =>
   httpClient.get<LocationsSummaryDto>('/locations/summary');
